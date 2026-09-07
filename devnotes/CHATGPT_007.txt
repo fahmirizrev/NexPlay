@@ -1,0 +1,1865 @@
+NEXPLAY — SNAPSHOT PROGRESS UNTUK MELANJUTKAN CHAT BARU
+Tanggal konteks: 2026-09-06
+Repository root: C:\laragon\www\nexplay
+Active native project: nexplay_kotlin
+Branch: main
+
+======================================================================
+1. STATUS TERKINI
+======================================================================
+
+Current Phase:
+PHASE 17 — UI/UX Refinement
+
+Status:
+IN PROGRESS
+
+Checkpoint terakhir:
+UI/UX Refinement #1 — IMPLEMENTED + VERIFIED + DOCUMENTED + PUSHED
+
+PHASE 17 sebelumnya direncanakan untuk:
+History / Recently Played
+
+Keputusan produk terbaru:
+PHASE 17 sekarang digunakan untuk iterative UI/UX Refinement.
+
+Persistent History / Recently Played:
+DEFERRED.
+Bukan scope PHASE 17 saat ini.
+
+PENTING:
+PHASE 07 tetap merupakan historical phase "Folders Basic" yang sudah
+selesai. Yang berubah adalah arah PHASE 17, bukan PHASE 07.
+
+Current task:
+Belum ada bug/feature aktif yang tertinggal dari chat sebelumnya.
+
+Task terakhir yang sudah selesai:
+- typography refinement;
+- theme selector refinement;
+- Audio Player refinement;
+- Playlist Detail refinement;
+- playlist drag reorder;
+- playlist row menu;
+- playlist row alignment;
+- Playlist Detail transition refinement;
+- documentation closeout;
+- commit + push;
+- cleanup accidental duplicate docs commit karena closeout command
+  sempat dijalankan dua kali.
+
+NEXT:
+User akan menentukan UI/UX refinement berikutnya.
+
+======================================================================
+2. GIT / CHECKPOINT TERKINI
+======================================================================
+
+Checkpoint implementasi utama:
+
+4b4007a
+feat(ui): checkpoint UI/UX refinement #1
+
+Closeout command sempat dijalankan dua kali.
+
+Run kedua menghasilkan accidental duplicate documentation commit:
+
+1c642d6
+feat(ui): checkpoint UI/UX refinement #1
+
+Accidental commit tersebut sudah direvert dengan:
+
+9efdc6a
+Revert "feat(ui): checkpoint UI/UX refinement #1"
+
+Current HEAD:
+
+9efdc6a
+
+Latest history:
+
+9efdc6a Revert "feat(ui): checkpoint UI/UX refinement #1"
+1c642d6 feat(ui): checkpoint UI/UX refinement #1
+4b4007a feat(ui): checkpoint UI/UX refinement #1
+bf33333 feat(playlist): add Room-backed playlists
+1e716cb feat(playhub): add native PlayHub
+
+Current repository state yang sudah diverifikasi:
+
+- HEAD -> main
+- origin/main -> 9efdc6a
+- main up to date dengan origin/main
+- working tree clean
+- nothing to commit
+- git diff --check clean
+- accidental duplicate documentation sudah dibatalkan
+- net repository content setelah 9efdc6a sama dengan checkpoint benar
+  4b4007a
+
+Jangan:
+- reset history;
+- rebase;
+- squash accidental commit;
+- force push.
+
+History saat ini aman dan tidak perlu disentuh lagi.
+
+======================================================================
+3. VERIFICATION CHECKPOINT #1
+======================================================================
+
+Terminal verification:
+
+testDebugUnitTest:
+PASS / BUILD SUCCESSFUL
+
+lintDebug:
+PASS / BUILD SUCCESSFUL
+
+assembleDebug:
+PASS / BUILD SUCCESSFUL
+
+git diff --check:
+PASS
+
+Runtime verification yang sudah diterima user:
+
+- Audio Player latest visual refinement accepted
+- Audio Player artwork centering accepted
+- Playlist drag reorder accepted
+- Playlist item dapat di-reorder lagi setelah previous reorder
+- reverse/subsequent drag responsiveness accepted
+- Playlist row 3-dots alignment accepted
+- Playlist Detail entry-motion refinement accepted
+
+Jangan mengklaim:
+
+- Production-ready
+- Fully device-compatible
+- No regression
+- Broad codec compatibility
+
+tanpa bukti tambahan.
+
+Verification checkpoint ini hanya membuktikan scope UI/UX Refinement #1.
+
+======================================================================
+4. ROADMAP IMPLEMENTASI YANG SUDAH DICAPAI
+======================================================================
+
+PHASE 00
+Flutter Baseline Audit
+COMPLETED + VERIFIED
+
+PHASE 01
+Native Kotlin Bootstrap
+COMPLETED + VERIFIED
+
+PHASE 02
+App Shell, Theme, Navigation
+COMPLETED + VERIFIED
+
+PHASE 03
+Canonical Media Model
+COMPLETED + VERIFIED
+
+PHASE 04
+Media Scanner: Audio
+COMPLETED + VERIFIED
+
+PHASE 05
+Media Scanner: Video
+COMPLETED + VERIFIED
+
+PHASE 06
+Media Library / Repository
+COMPLETED + VERIFIED
+
+PHASE 07
+Folders Basic + Native Presentation Foundation
+COMPLETED + VERIFIED
+
+PHASE 08
+Queue Engine
+COMPLETED + VERIFIED
+
+PHASE 09
+Playback Engine / Media3 / ExoPlayer
+COMPLETED + VERIFIED
+
+PHASE 10
+Queue + Playback Integration
+COMPLETED + VERIFIED
+
+PHASE 11
+Audio Player UI
+COMPLETED + VERIFIED
+
+PHASE 12
+Android MediaSession + Background Audio
+COMPLETED + VERIFIED
+
+PHASE 13
+Video Player UI
+COMPLETED + VERIFIED
+
+PHASE 14
+Search
+COMPLETED + VERIFIED
+
+PHASE 15
+PlayHub
+IMPLEMENTED
+
+PHASE 16
+Room-backed Playlist Persistence
+IMPLEMENTED
+
+PHASE 17
+UI/UX Refinement
+IN PROGRESS
+
+Checkpoint #1:
+COMPLETED + VERIFIED
+
+Masih akan ada beberapa UI/UX refinements berikutnya.
+
+======================================================================
+5. ARSITEKTUR UTAMA — JANGAN DIUBAH TANPA KEPUTUSAN EKSPLISIT
+======================================================================
+
+Canonical flow:
+
+MediaStore
+    ↓
+MediaScanner
+    ↓
+MediaLibraryRepository
+    ↓
+Folders / Search / PlayHub / Playlist
+    ↓
+QueueEngine
+    ↓
+QueuePlaybackCoordinator
+    ↓
+PlaybackEngine
+    ↓
+single ExoPlayer / Media3
+    ↓
+Audio Player / Video Player / MediaSession
+
+Ownership:
+
+QueueEngine:
+- authoritative queue owner
+- queue items
+- currentIndex
+- currentItem
+- shuffle
+- repeat
+- playbackContext
+- queue completion policy
+
+PlaybackEngine:
+- authoritative playback runtime owner
+- single ExoPlayer
+- prepare
+- play
+- pause
+- stop
+- seek
+- position
+- duration
+- buffering
+- runtime error
+
+QueuePlaybackCoordinator:
+- explicit Queue ↔ Playback boundary
+- bukan second queue
+- bukan second playback state
+
+MediaLibraryRepository:
+- canonical local-media data source
+- UI tidak boleh membaca MediaStore langsung
+
+PlaylistRepository:
+- Room persistence boundary
+- bukan active queue owner
+
+MediaSession:
+- non-authoritative Android system integration
+- menggunakan QueuePlaybackCoordinator yang sama
+- bukan player/queue kedua
+
+UI:
+- presentation + interaction layer
+- tidak boleh mengambil ownership domain/runtime subsystem
+
+Jangan menambah:
+
+- QueueEngine kedua
+- PlaybackEngine kedua
+- ExoPlayer kedua
+- MediaSession kedua
+- MediaLibraryRepository kedua
+- hidden playback queue
+- hidden duplicate playlist persistence
+- dependency baru tanpa kebutuhan yang terbukti
+
+======================================================================
+6. QUEUE / PLAYBACK CONTRACT PENTING
+======================================================================
+
+Queue adalah source-scoped active playback session.
+
+Saat user memilih media dari source A:
+
+source A
+→ setQueue(A)
+
+Kemudian memilih source B:
+
+source B
+→ setQueue(B)
+
+Queue A tidak otomatis diappend ke Queue B.
+
+Cross-source mixing hanya boleh terjadi melalui future explicit action seperti:
+
+append()
+insertNext()
+
+Queue snapshot tidak diam-diam mengikuti filesystem setelah playback dimulai.
+
+Retained QueueState PHASE 15:
+- in-memory
+- dapat bertahan setelah runtime playback dihentikan
+- bukan persistent History
+
+Perbedaan penting:
+
+stopPlayback()
+→ stop runtime playback
+→ retain QueueState
+
+clear()
+→ stop runtime playback
+→ clear QueueState
+
+CRITICAL CONTRACT:
+
+QueuePlaybackCoordinator.clear()
+
+harus melakukan:
+
+playbackEngine.stop()
+↓
+queueEngine.clear()
+
+Jangan dibalik.
+
+Pernah ada crash/race terkait stale playback state.
+
+Stale ENDED callback:
+harus diabaikan ketika playback media sudah tidak sama dengan
+canonical current queue item.
+
+======================================================================
+7. PLAYLIST PRODUCT CONTRACT
+======================================================================
+
+Playlist:
+persistent user-owned media collection.
+
+Queue:
+temporary active playback session.
+
+Playlist ≠ Queue.
+
+Persistence:
+Room.
+
+Playlist storage:
+media-agnostic.
+
+Playlist presentation:
+AUDIO-FIRST.
+
+Ini deliberate NexPlay product behavior.
+
+Audio-only playlist:
+
+[A1, A2, A3]
+→ Audio Player
+
+Video-only playlist:
+
+[V1, V2, V3]
+→ Audio Player
+→ audio track video dimainkan sebagai audio presentation
+
+Mixed playlist:
+
+[A1, V1, A2, V2]
+→ tetap Audio Player continuously
+
+PENTING:
+
+VideoItem tetap canonical VideoItem.
+
+Jangan:
+VideoItem → AudioItem conversion
+
+Queue tetap boleh menyimpan mixed MediaItem.
+
+PlaylistContext harus tetap dipertahankan.
+
+Jika current Playlist item adalah VideoItem:
+user dapat memilih "Switch to Video".
+
+Explicit Switch to Video:
+
+- tidak rebuild queue
+- tidak mengganti media identity
+- tidak mengganti PlaylistContext
+- tidak membuat playback runtime baru
+
+Ketika current playlist item berubah setelah explicit video presentation:
+
+→ kembali ke Audio Player
+
+Policy ini HANYA berlaku untuk PlaylistContext.
+
+Direct Folder/Search playback tetap type-correct:
+
+Folder/Search AudioItem
+→ Audio Player
+
+Folder/Search VideoItem
+→ Video Player
+
+======================================================================
+8. PHASE 16 — PLAYLIST PERSISTENCE BASELINE
+======================================================================
+
+Room persistence sudah tersedia:
+
+- PlaylistEntity
+- PlaylistItemEntity
+- PlaylistDao
+- NexPlayDatabase
+- PlaylistRepository
+
+Supported operations:
+
+- Create
+- Rename
+- Delete
+- Clear
+- Add
+- Remove
+- Reorder
+- Observe Playlists
+- Observe Playlist
+
+Duplicate media URI pada playlist yang sama:
+safe/no duplicate.
+
+PlaylistRepository.reorder():
+
+- menerima playlistId
+- menerima fromIndex
+- menerima toIndex
+- berjalan dalam Room transaction
+- remove item dari old position
+- insert pada new position
+- normalize positions kembali
+- update timestamp
+- tidak mengubah QueueState diam-diam
+
+Missing playlist media:
+
+- membership tidak silently deleted
+- ditampilkan sebagai unavailable
+- tidak dimainkan
+- tetap dapat dihapus user
+
+Folder Detail selection mode juga tersedia:
+
+long press media
+→ selection mode
+
+Dalam selection mode:
+
+- tap toggle selected item
+- tap tidak memulai playback
+- Select All / Deselect All
+- fixed action bar
+- Add
+- Clear
+- multi-item Add to Playlist
+
+Shared AddToPlaylist flow digunakan oleh:
+
+- Folder Detail selection
+- Audio Player
+- Playlist row Add to Playlist
+
+======================================================================
+9. UI/UX REFINEMENT #1 — TYPOGRAPHY
+======================================================================
+
+Sebelumnya:
+Sora dipaksa sebagai global application FontFamily.
+
+Keputusan terbaru:
+
+Active Typography kembali menggunakan:
+default Android / Compose font.
+
+Tetap dipertahankan:
+
+- fontSize
+- FontWeight
+- lineHeight
+- letterSpacing
+- typography hierarchy
+
+Yang dilepas:
+forced NexPlay/Sora FontFamily.
+
+Sora font resources:
+MASIH ADA.
+
+Sora license:
+MASIH ADA.
+
+Belum dihapus.
+
+Jangan membersihkan Sora resource/license diam-diam sebagai side effect
+task lain.
+
+Current state:
+
+Active Typography:
+default Android / Compose
+
+Sora resources:
+unused/deferred cleanup
+
+======================================================================
+10. UI/UX REFINEMENT #1 — THEME
+======================================================================
+
+Existing theme domain:
+
+NexPlayThemeMode.SYSTEM
+NexPlayThemeMode.LIGHT
+NexPlayThemeMode.DARK
+
+Default:
+SYSTEM.
+
+Masalah sebelumnya:
+Folders overflow hanya menyediakan binary "Dark mode" switch.
+
+Akibatnya:
+setelah user memilih manual mode, tidak ada UI untuk kembali ke SYSTEM.
+
+Sudah diperbaiki.
+
+Folders overflow sekarang menyediakan explicit choices:
+
+System
+Light
+Dark
+
+Selected mode:
+ditandai dengan active indicator.
+
+Existing persisted NexPlayThemeMode tetap digunakan.
+
+Jangan:
+
+- kembali ke binary Dark Mode switch;
+- mengganti persistence architecture;
+- memindahkan theme ke arsitektur baru sebagai side effect UI refinement.
+
+DataStore migration tetap future phase.
+
+======================================================================
+11. UI/UX REFINEMENT #1 — AUDIO PLAYER
+======================================================================
+
+Audio Player telah mengalami visual refinement besar tetapi playback
+architecture tetap dipertahankan.
+
+Latest accepted visual direction:
+
+- flat
+- minimalist
+- immersive
+- restrained
+- tidak overdecorated
+
+Header tetap mempertahankan:
+
+- collapse/minimize
+- video/switch action sesuai current context
+- overflow
+- existing playback/navigation behavior
+
+Identity area:
+
+kiri:
+N E X P L A Y
+Play the moment
+
+kanan:
+Music
+Lives
+Local
+vertical divider
+
+Artwork:
+
+- masih fallback artwork
+- rounded-square
+- diperbesar
+- dipusatkan
+- organic/experimental artwork geometry sudah dibuang
+- real artwork pipeline belum diimplementasikan
+
+Title:
+
+- one line
+- running marquee
+- tidak wrap dua baris
+
+Metadata:
+
+- artist
+- album/source sesuai canonical model
+
+Control Deck:
+
+6 circular controls dengan caption:
+
+-10s
+Shuffle
+A-B
+Add
+Repeat
++10s
+
+Behavior tetap:
+
+- seek -10
+- shuffle
+- A-B Repeat
+- Add to Playlist
+- repeat
+- seek +10
+
+Main transport:
+
+Previous
+large Play/Pause
+Next
+
+Footer:
+
+GraphicEq icon
+Audio Player
+line
+/ N E X P L A Y
+
+Audio Player tetap harus mempertahankan:
+
+- Queue access
+- A-B Repeat
+- Add to Playlist
+- shuffle
+- repeat
+- previous
+- next
+- seek
+- swipe-down minimize
+- Audio Mini Player
+- VideoItem Switch to Video
+- PlaylistContext audio-first rule
+
+Tidak ada Favorite domain.
+
+Jangan menambahkan Favorite hanya karena referensi media player umum
+memilikinya.
+
+Real artwork belum tersedia.
+
+Jangan menambah Coil / bitmap / artwork pipeline sebagai side effect
+UI refinement kecuali user meminta secara eksplisit.
+
+======================================================================
+12. UI/UX REFINEMENT #1 — PLAYLIST DETAIL
+======================================================================
+
+Latest accepted Playlist Detail:
+
+Header:
+- Back
+- playlist title
+- item count
+- 3-dots
+
+Primary actions:
+- Play All
+- Shuffle
+
+Play All:
+icon + text menggunakan white foreground.
+
+Playlist rows:
+
+- media preview
+- title
+- metadata
+- drag handle
+- 3-dots
+
+Old controls yang sudah dihapus:
+
+- Arrow Up
+- Arrow Down
+- direct trash icon
+
+Jangan dikembalikan.
+
+Row 3-dots menu:
+
+- Delete
+- Add to Playlist
+
+Add to Playlist:
+menggunakan existing shared AddToPlaylistDialog / PlaylistRepository path.
+
+Duplicate add:
+safe/no-op sesuai PlaylistRepository contract.
+
+Row 3-dots alignment:
+sudah diperbaiki agar mengikuti same vertical optical axis dengan
+header 3-dots.
+
+Visual reference:
+Folders / Folder Detail.
+
+Current implementation menggunakan shared right-edge optical offset.
+
+Jangan mengembalikan row 3-dots ke old alignment.
+
+======================================================================
+13. PLAYLIST DRAG REORDER — CURRENT CONTRACT
+======================================================================
+
+Flutter NexPlay dan cromaguy/Rhythm pernah dipelajari sebagai behavior
+reference.
+
+PENTING:
+Source Rhythm tidak boleh dicopy verbatim.
+
+NexPlay menggunakan implementation sendiri.
+
+Tidak ada third-party reorder dependency.
+
+Current interaction architecture:
+
+pointer input
+    ↓
+update drag position
+    ↓
+frame-driven processing
+    ↓
+calculate dragged card position
+    ↓
+read live LazyColumn slot
+    ↓
+determine reorder
+    ↓
+edge auto-scroll
+    ↓
+logical displayedItems update
+    ↓
+release
+    ↓
+settle
+    ↓
+persist final reorder ONCE
+
+Tujuan utama:
+
+Dragged row harus terasa tetap menempel pada jari.
+
+Underlying list boleh berubah index tanpa membuat dragged row melompat.
+
+Room tidak ditulis setiap frame.
+
+Persistence hanya dilakukan ketika final drop.
+
+Important bug yang pernah ada:
+
+Initial:
+
+A
+B
+C
+
+Drag A turun:
+
+B
+A
+C
+
+Release.
+
+Kemudian drag A naik lagi.
+
+Sebelumnya:
+tidak responsif.
+
+Root cause yang ditemukan:
+pointerInput keyed hanya pada mediaUri dapat mempertahankan coroutine
+lama dengan lambda onDragStart yang menangkap stale item index.
+
+Fix:
+
+rememberUpdatedState digunakan untuk current callbacks:
+
+- onDragStart
+- onDrag
+- onDragEnd
+- onDragCancel
+
+pointerInput tetap stable, tetapi callback selalu terbaru.
+
+Jangan mengganti secara sembarangan dengan:
+
+pointerInput(mediaUri, index)
+
+karena index dapat berubah ketika drag berlangsung dan perubahan key
+dapat me-restart pointer coroutine / membatalkan active gesture.
+
+Latest runtime verified:
+
+A
+B
+C
+
+drag A turun
+→ B A C
+
+release
+
+drag A naik
+→ A B C
+
+berfungsi.
+
+Jika refinement berikutnya tidak terkait playlist reorder:
+JANGAN utak-atik reorder engine.
+
+======================================================================
+14. PLAYLIST DETAIL MOTION
+======================================================================
+
+Folder Detail reference motion:
+
+230 ms
+
+Playlist Detail awalnya juga memakai:
+
+230 ms
+
+Tetapi runtime user merasakan Playlist Detail masuk terlalu cepat /
+hampir instant.
+
+Keputusan latest:
+
+Playlist Detail memakai dedicated motion duration:
+
+320 ms
+
+Geometry tetap:
+
+horizontal shallow slide
++
+fade
+
+Folder Detail:
+230 ms
+
+Playlist Detail:
+320 ms
+
+Jangan mengubah Folder Detail hanya untuk menyamakan angka.
+
+Playlist Detail 320 ms sudah diterima user pada runtime.
+
+======================================================================
+15. PLAYHUB CURRENT CONTRACT
+======================================================================
+
+PlayHub hierarchy:
+
+PlayHub
+├── Queue
+└── Playlists
+
+Recently Played:
+tidak digunakan.
+
+History:
+tidak digunakan.
+
+Queue card:
+fixed.
+
+Playlists heading:
+fixed.
+
+Hanya playlist rows area yang scrollable.
+
+Queue card behavior:
+
+Queue card background/header
+→ Queue Screen
+
+Current media area
+→ current player presentation
+
+Transport controls
+→ transport only
+→ tidak membuka player
+
+Opening current player tidak boleh:
+
+- setQueue()
+- playAt()
+- rebuild queue
+- restart playback
+
+Opening current player hanya presentation change.
+
+Presentation resolution:
+
+Non-PlaylistContext:
+
+AudioItem
+→ Audio Player
+
+VideoItem
+→ Video Player
+
+PlaylistContext:
+
+AudioItem
+→ Audio Player
+
+VideoItem
+→ Audio Player
+
+Queue Screen:
+
+- membaca canonical QueueState
+- current item berasal dari canonical currentIndex
+- row tap menggunakan playAt(index)
+- tidak membuat queue baru
+
+======================================================================
+16. VIDEO PLAYER CONTRACT YANG HARUS DIPERTAHANKAN
+======================================================================
+
+Video Player menggunakan:
+same canonical Media3 / ExoPlayer runtime.
+
+Tidak ada second ExoPlayer.
+
+Supported:
+
+- portrait playback
+- landscape fullscreen
+- orientation handling
+- controls auto-hide
+- single tap controls visibility
+- double tap left seek -10
+- double tap center play/pause
+- double tap right seek +10
+- previous
+- next
+- seek
+- playback error state
+- Video → Audio Only
+- Audio Only → Video
+- Audio Only → Mini Player
+- Child Lock
+
+Direct Video Player close:
+
+stopPlayback()
+→ QueueState tetap retained
+
+Stop ≠ Clear.
+
+Child Lock:
+
+- Android startLockTask / Screen Pinning
+- persistent local 4-digit PIN
+- first-use Set PIN
+- Confirm PIN
+- subsequent use stored PIN
+- unlock affordance harus di-hold sekitar 2 detik
+- setelah hold, user memasukkan PIN
+- wrong PIN tetap locked
+- correct PIN unlock
+- stopLockTask bila relevan
+
+Child Lock adalah:
+parental convenience boundary.
+
+Bukan:
+true kiosk / Device Owner security.
+
+======================================================================
+17. KNOWN LIMITATIONS / DEFERRED
+======================================================================
+
+1. Real Artwork
+
+Real media artwork extraction/display belum dimigrasikan.
+
+Audio Player:
+fallback artwork.
+
+Android system media surface:
+masih fallback/current identity behavior.
+
+2. Sora Resource
+
+Sora tidak lagi active Typography.
+
+Font resource/license masih berada di project.
+
+Cleanup belum dilakukan.
+
+3. PlaylistRepository Room Instrumentation
+
+Dedicated instrumentation test tersedia.
+
+Latest attempt tidak berjalan karena physical device menolak test APK:
+
+INSTALL_FAILED_USER_RESTRICTED
+Starting 0 tests
+Finished 0 tests
+
+Ini adalah:
+device/test-APK installation limitation.
+
+Bukan:
+PlaylistRepository assertion failure.
+
+Masih membutuhkan successful test run pada device yang mengizinkan
+instrumentation APK.
+
+4. Missing / Deleted Playlist Media
+
+Safe handling implemented.
+
+Broad deleted-file/device matrix:
+belum exhaustive.
+
+5. Folder/Search Mixed Queue Parity
+
+QueueEngine:
+sudah mendukung mixed audio/video MediaItem.
+
+Tetapi current Folder Detail/Search source playback:
+masih type-specific queue.
+
+Ini known parity gap.
+
+Jangan memperbaikinya diam-diam sebagai side effect UI refinement.
+
+6. Persistent History / Recently Played
+
+Deferred.
+
+Bukan PHASE 17 lagi.
+
+7. Media Library Persistence / Cached Startup
+
+Belum dimigrasikan penuh.
+
+8. Repository Refresh
+
+Masih synchronous API dan harus dipanggil di luar UI thread.
+
+9. Codec / Old Devices
+
+Broad codec compatibility:
+belum divalidasi.
+
+Tetap PHASE 21.
+
+Media3 masih bergantung pada codec/decoder capability device.
+
+10. MediaSession / OEM Matrix
+
+Development device sudah diverifikasi.
+
+Broad OEM/device matrix:
+belum exhaustive.
+
+11. Child Lock
+
+Screen Pinning bukan true kiosk / Device Owner.
+
+12. Change / Reset Child Lock PIN
+
+Belum ada dedicated Settings surface.
+
+Deferred.
+
+13. Rhythm Analyzer
+
+Placeholder.
+
+14. Share
+
+Placeholder.
+
+15. Details
+
+Placeholder.
+
+16. Playback speed / haptic micro-interactions / artwork-driven accent
+
+Deferred sesuai current roadmap / product direction.
+
+======================================================================
+18. ACTIVE DOCUMENTATION
+======================================================================
+
+Active migration docs:
+
+MIGRATION_PLAN.md
+MIGRATION_ROADMAP.md
+MIGRATION_STATUS.md
+
+Latest known root workspace:
+
+README.md:
+NOT PRESENT
+
+CHANGELOG.md:
+NOT PRESENT
+
+ROADMAP.md:
+NOT PRESENT
+
+Jangan membuat root README/CHANGELOG/ROADMAP baru hanya karena standard
+project biasanya memilikinya.
+
+Legacy docs:
+jangan disentuh kecuali user secara eksplisit meminta.
+
+Current active docs sudah mencatat:
+
+- PHASE 17 = UI/UX Refinement
+- Checkpoint #1 = verified
+- additional refinements = planned
+- History / Recently Played = deferred
+
+======================================================================
+19. SOURCE OF TRUTH RULES
+======================================================================
+
+Target behavior ditentukan oleh urutan:
+
+1. Instruksi terbaru user
+2. Keputusan terbaru yang sudah dikonfirmasi
+3. Dokumentasi terbaru
+4. Konteks percakapan
+
+Actual implementation state ditentukan oleh:
+
+1. Repository aktual
+2. File terbaru
+3. Snippet terbaru
+4. Output terminal terbaru
+5. Screenshot terbaru
+6. Agent report terbaru
+7. Memory / conversation context
+
+Memory:
+hanya untuk konteks.
+
+Memory bukan source-code evidence.
+
+Jika user memberikan file/source terbaru dan menyebutnya sebagai
+source of truth:
+
+- abaikan code lama;
+- abaikan patch lama;
+- abaikan asumsi struktur lama;
+- gunakan current/latest evidence.
+
+Jangan merekonstruksi source code dari ingatan.
+
+======================================================================
+20. SOFTWARE ENGINEERING MODE
+======================================================================
+
+ROLE:
+
+- Software Architect
+- Senior Software Engineer
+- Product Engineer
+
+Prioritas:
+
+- Simplicity
+- Maintainability
+- Scalability
+- Readability
+- Long-term Sustainability
+
+Hindari:
+
+- Overengineering
+- Premature Optimization
+- Unnecessary Abstraction
+- Unnecessary Dependency
+- Scope Creep
+
+Gunakan solusi paling kecil yang menyelesaikan masalah.
+
+======================================================================
+21. RESPONSE MODES
+======================================================================
+
+A. DISCUSSION
+
+Untuk:
+
+- brainstorming
+- product decision
+- architecture
+- roadmap
+- conceptual documentation
+- compare alternatives
+
+Rules:
+
+- jawab konseptual
+- jelaskan trade-off
+- jelaskan risk
+- beri recommendation
+- jangan meminta file jika tidak perlu
+- jangan memberi discovery command jika belum perlu
+- jangan membuat patch bila user belum meminta implementasi
+
+B. IMPLEMENTATION
+
+Untuk:
+
+- bug fix
+- feature
+- source change
+- refactor
+- UI implementation
+
+Rules:
+
+Jika actual evidence cukup:
+→ langsung berikan patch.
+
+Jika actual evidence belum cukup:
+→ lakukan/minta satu comprehensive discovery package.
+
+Jangan menebak:
+
+- path
+- current source
+- symbol
+- structure
+- architecture
+
+Jangan memberi teori panjang ketika user meminta eksekusi.
+
+C. AGENT PROMPTING
+
+Jika user meminta prompt Codex / TRAE / coding agent:
+
+- buat prompt siap pakai
+- jangan implementasikan task sendiri
+- instruksikan agent membaca repository terlebih dahulu
+- jangan tebak nama file/path
+- sertakan:
+  - task
+  - target
+  - constraints
+  - verification
+  - output report
+
+D. REVIEW
+
+Gunakan status:
+
+ALIGNED
+PARTIALLY ALIGNED
+NOT ALIGNED
+INSUFFICIENT EVIDENCE
+
+Bedakan:
+
+Implemented
+Verified
+Concern
+Known Limitation
+Out of Scope
+
+======================================================================
+22. COMPREHENSIVE DISCOVERY RULE
+======================================================================
+
+Jika evidence source belum cukup:
+
+Jangan meminta banyak snippet terpisah.
+
+Gunakan satu evidence package:
+
+patches/output/<nama_discovery>.txt
+
+Discovery hanya mencakup seluruh area yang LANGSUNG terkait scope.
+
+Mulai dari:
+
+- symbol
+- entry point
+
+Trace hubungan langsung sampai:
+
+- caller
+- consumer
+- helper
+- service
+- bridge
+- adapter
+- state
+- model
+- controller/provider
+- data flow
+- test
+- configuration
+- dependency
+- relevant native/platform code
+- relevant build setting
+
+Jangan membaca seluruh repository tanpa kebutuhan.
+
+Discovery file minimal berisi:
+
+- Task / masalah
+- Scope discovery
+- File yang diperiksa
+- Symbol/block penting
+- Hubungan antar-file
+- Relevant control/data flow
+- Existing tests/verification
+- Relevant configuration/dependency
+- Temuan utama
+- Concern/unknown
+- Kesimpulan apakah evidence cukup untuk patch
+
+Jika source block diperlukan untuk patch:
+sertakan full actual block tanpa ellipsis.
+
+patches/output:
+EVIDENCE ONLY.
+
+Jangan stage.
+Jangan commit.
+
+======================================================================
+23. MANUAL PATCH FORMAT
+======================================================================
+
+Manual patch harus menggunakan format:
+
+FILE:
+<path>
+
+CARI:
+<actual exact block>
+
+GANTI MENJADI:
+<full replacement>
+
+EFEK:
+<short explanation>
+
+Rules CARI:
+
+- persis current source
+- lengkap untuk Ctrl+F
+- preserve indentation
+- tanpa ellipsis
+
+Rules GANTI MENJADI:
+
+- complete
+- paste-ready
+- smallest sufficient change
+
+Jangan:
+
+- pseudo-code sebagai actual patch
+- generic patch
+- guessed source
+- guessed path
+
+======================================================================
+24. CHANGE CONTROL
+======================================================================
+
+Jangan melakukan tanpa explicit scope:
+
+- broad refactor
+- architecture replacement
+- state management migration
+- database schema change
+- routing change
+- unrelated UI cleanup
+- dependency addition
+- feature removal
+- legacy cleanup
+- unrelated bug fix
+
+Jika menemukan masalah di luar scope:
+
+laporkan sebagai Concern.
+
+Jangan memperbaiki diam-diam.
+
+======================================================================
+25. SCREENSHOT RULE
+======================================================================
+
+Screenshot digunakan untuk:
+
+- visual analysis
+- identifying UI issue
+- comparing results
+- runtime verification
+
+Screenshot dapat membuktikan:
+visual problem / visual result.
+
+Screenshot tidak selalu membuktikan:
+source-code root cause.
+
+Jangan membuat mockup / generated image kecuali user meminta.
+
+======================================================================
+26. VERIFICATION RULE
+======================================================================
+
+Canonical verification dari root repository:
+
+$ErrorActionPreference = "Stop"
+
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin testDebugUnitTest
+if ($LASTEXITCODE -ne 0) {
+    throw "testDebugUnitTest failed."
+}
+
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin lintDebug
+if ($LASTEXITCODE -ne 0) {
+    throw "lintDebug failed."
+}
+
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebug
+if ($LASTEXITCODE -ne 0) {
+    throw "assembleDebug failed."
+}
+
+git diff --check
+if ($LASTEXITCODE -ne 0) {
+    throw "git diff --check failed."
+}
+
+git status
+
+Jangan klaim:
+
+- Fixed
+- Done
+- Fully Verified
+- Production-ready
+- No Regression
+
+tanpa evidence.
+
+Bedakan:
+
+Implemented
+Not Yet Verified
+Verified
+
+======================================================================
+27. BUILD + LAUNCH RULE
+======================================================================
+
+Jika user meminta build dan launch:
+
+$ErrorActionPreference = "Stop"
+
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebug
+if ($LASTEXITCODE -ne 0) {
+    throw "assembleDebug failed."
+}
+
+adb install -r nexplay_kotlin\app\build\outputs\apk\debug\app-debug.apk
+if ($LASTEXITCODE -ne 0) {
+    throw "adb install failed."
+}
+
+adb shell am force-stop com.nexplay.app
+if ($LASTEXITCODE -ne 0) {
+    throw "force-stop failed."
+}
+
+adb shell monkey -p com.nexplay.app -c android.intent.category.LAUNCHER 1
+if ($LASTEXITCODE -ne 0) {
+    throw "launch failed."
+}
+
+adb shell pidof com.nexplay.app
+
+Jangan hardcode device serial kecuali memang diperlukan.
+
+Latest known physical test device:
+
+Xiaomi 23049PCD8G
+Android 15 / API 35
+
+Tetapi jangan mengasumsikan device berikutnya selalu sama.
+
+======================================================================
+28. POWERSHELL COMMAND STYLE
+======================================================================
+
+Semua command diasumsikan dijalankan dari:
+
+C:\laragon\www\nexplay
+
+Jangan meminta user masuk ke directory lain tanpa kebutuhan.
+
+Untuk long PowerShell docs/update commands:
+
+- command diberikan langsung di chat
+- jangan membuat .ps1 kecuali user meminta
+- gunakan outer Markdown four-backtick fence bila command ditampilkan
+- PowerShell backtick boleh digunakan normal
+- jika generated docs memerlukan Markdown triple-backtick, gunakan:
+
+$fence = [string]::new([char]96, 3)
+
+Gunakan:
+
+$ErrorActionPreference = "Stop"
+
+Setelah Gradle / Git / ADB command:
+selalu cek $LASTEXITCODE bila relevan.
+
+======================================================================
+29. DOCS + GIT CLOSEOUT RULE
+======================================================================
+
+Canonical closeout sequence:
+
+1. verification
+2. read current docs
+3. targeted docs update
+4. documentation diff
+5. git diff --check
+6. explicit git add relevant files
+7. verify patches/output not staged
+8. git diff --cached --check
+9. inspect staged files/stat
+10. git status
+11. commit
+12. push origin main
+13. final git status
+14. git log -1
+
+JANGAN:
+
+git add .
+
+Gunakan explicit staging list.
+
+patches/output:
+tidak boleh staged.
+
+Documentation language:
+
+CHANGELOG:
+English, newest entry paling atas, preserve history.
+
+README:
+English jika relevant dan memang active.
+
+MIGRATION / Project Docs:
+Bahasa Indonesia / mixed terminology sesuai current convention.
+
+ROADMAP:
+boleh mix Bahasa Indonesia + English.
+
+Docs harus membedakan:
+
+- Implemented
+- Verified
+- Target
+- Concern
+- Known Limitation
+- Deferred
+
+======================================================================
+30. LESSON DARI ACCIDENTAL DOUBLE CLOSEOUT
+======================================================================
+
+Closeout command sebelumnya sempat dijalankan dua kali.
+
+Run pertama:
+benar.
+
+Run kedua:
+sebagian Replace-Required gagal karena original source text sudah berubah,
+tetapi beberapa insertion masih berhasil sehingga duplicate docs muncul.
+
+Accidental run menghasilkan:
+
+1c642d6
+
+Sudah direvert dengan:
+
+9efdc6a
+
+Pelajaran untuk command docs berikutnya:
+
+- sebisa mungkin buat command idempotent;
+- cek apakah target checkpoint sudah ada;
+- jangan melakukan insertion kalau target state sudah tercapai;
+- validate seluruh required old-state sebelum menulis file bila memungkinkan;
+- fail-fast sebelum Write-Lf;
+- setelah PowerShell throw, jangan terus mengeksekusi sisa block manual;
+- setelah command sudah commit + push sukses, jangan jalankan ulang
+  command yang sama;
+- kalau accidental duplicate terjadi lagi, cek actual Git state dulu;
+- jangan otomatis reset/rebase/force-push.
+
+======================================================================
+31. CURRENT ACTIVE PHASE 17 CONTRACT
+======================================================================
+
+PHASE 17 bukan giant redesign.
+
+PHASE 17 adalah:
+
+- iterative
+- scoped
+- checkpoint-based
+- runtime-driven UI/UX refinement
+
+Typical workflow:
+
+1. user memilih problem/target
+2. discussion bila masih conceptual
+3. screenshot dapat menjadi visual evidence
+4. jika implementation diminta:
+   - gunakan current source evidence
+   - comprehensive discovery jika evidence kurang
+5. smallest patch
+6. runtime verification
+7. terminal verification bila relevan
+8. kumpulkan beberapa stable refinements
+9. buat checkpoint berikutnya saat user meminta
+
+Checkpoint #1 sudah mencakup:
+
+- Typography
+- Theme selector
+- Audio Player
+- Playlist Detail
+- Playlist drag reorder
+- Playlist row 3-dots menu
+- Playlist row/header alignment
+- Playlist Detail motion
+
+Checkpoint #2:
+BELUM DITENTUKAN.
+
+User akan memilih refinement selanjutnya.
+
+======================================================================
+32. HAL YANG JANGAN DIUBAH PADA CHAT BARU TANPA EXPLICIT SCOPE
+======================================================================
+
+Jangan mengubah:
+
+- QueueEngine ownership
+- PlaybackEngine ownership
+- single ExoPlayer
+- QueuePlaybackCoordinator architecture
+- MediaSession architecture
+- MediaLibraryRepository ownership
+- PlaylistRepository persistence semantics
+- Room schema
+- PlaylistContext audio-first behavior
+- Folder/Search direct playback semantics
+- stopPlayback vs clear distinction
+- Child Lock behavior
+- playlist drag reorder engine
+- rememberUpdatedState drag callback fix
+- Playlist Detail 320 ms motion
+- System / Light / Dark selector
+- default Android / Compose active Typography
+- Audio Player playback behavior/contracts
+
+UI/UX refinement sebisa mungkin tetap berada pada presentation layer.
+
+======================================================================
+33. CURRENT KNOWN SOURCE FILES DARI CHECKPOINT #1
+======================================================================
+
+Historical checkpoint #1 touched:
+
+nexplay_kotlin/app/src/main/java/com/nexplay/app/ui/AudioPlayerScreen.kt
+
+nexplay_kotlin/app/src/main/java/com/nexplay/app/ui/FoldersScreen.kt
+
+nexplay_kotlin/app/src/main/java/com/nexplay/app/ui/NexPlayShell.kt
+
+nexplay_kotlin/app/src/main/java/com/nexplay/app/ui/PlaylistScreen.kt
+
+nexplay_kotlin/app/src/main/java/com/nexplay/app/ui/theme/Type.kt
+
+PENTING:
+
+Daftar di atas hanya historical checkpoint context.
+
+Untuk task baru:
+jangan otomatis menganggap file-file itu current scope.
+
+Cari actual relevant source berdasarkan target refinement baru.
+
+======================================================================
+34. STARTING POINT UNTUK CHAT BARU
+======================================================================
+
+Current state:
+
+PHASE 17 — UI/UX Refinement
+
+Checkpoint #1:
+COMPLETED + VERIFIED + PUSHED
+
+Repository latest known state:
+
+branch:
+main
+
+HEAD:
+9efdc6a
+
+origin/main:
+9efdc6a
+
+working tree:
+clean
+
+Actual implementation checkpoint:
+
+4b4007a
+feat(ui): checkpoint UI/UX refinement #1
+
+Accidental duplicate docs commit:
+
+1c642d6
+
+Corrective revert:
+
+9efdc6a
+
+Net repository content:
+kembali sama dengan checkpoint implementasi benar 4b4007a.
+
+Tidak ada active implementation problem yang tertinggal dari chat ini.
+
+NEXT:
+User akan menentukan UI/UX refinement berikutnya.
+
+Ketika user mengirim task baru:
+
+- tetap treat PHASE 17 sebagai UI/UX Refinement;
+- jangan mengaitkannya kembali dengan History / Recently Played;
+- discussion jika user masih brainstorming;
+- implementation jika user meminta perubahan;
+- bila source evidence belum cukup, lakukan satu comprehensive discovery;
+- jangan menebak current source;
+- jangan memperluas scope;
+- jangan mengubah architecture/playback/persistence tanpa kebutuhan;
+- setelah beberapa refinement baru stabil, checkpoint #2 dapat dibuat
+  jika user meminta.
+
+======================================================================
+35. RINGKASAN
+======================================================================
+
+NexPlay native Kotlin sudah menyelesaikan core migration sampai
+Room-backed Playlist dan sekarang berada pada PHASE 17 iterative UI/UX
+Refinement.
+
+UI/UX Refinement #1 sudah mencakup:
+
+- kembali ke default Android / Compose Typography;
+- explicit System / Light / Dark theme selector;
+- Audio Player visual refinement;
+- centered artwork fallback;
+- one-line marquee title;
+- refined Control Deck dan transport;
+- Playlist Detail Play All white foreground;
+- native drag-handle playlist reorder;
+- frame-driven reorder interaction;
+- fix stale callback agar reorder kedua/reverse tetap responsif;
+- Playlist row 3-dots dengan Delete + Add to Playlist;
+- alignment row 3-dots dengan header;
+- Playlist Detail dedicated 320 ms transition.
+
+Checkpoint #1 sudah:
+
+- implemented;
+- runtime accepted;
+- testDebugUnitTest PASS;
+- lintDebug PASS;
+- assembleDebug PASS;
+- git diff --check PASS;
+- documented;
+- committed;
+- pushed.
+
+Accidental duplicate docs commit sudah direvert dengan aman.
+
+Current repository:
+clean dan synced dengan origin/main.
+
+NexPlay siap dilanjutkan ke UI/UX Refinement berikutnya.

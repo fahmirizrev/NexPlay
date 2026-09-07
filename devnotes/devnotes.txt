@@ -1,0 +1,72 @@
+──────────────────────────────
+
+VERIFICATION
+
+$ErrorActionPreference = "Stop"
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin testDebugUnitTest
+if ($LASTEXITCODE -ne 0) {
+    throw "testDebugUnitTest failed."
+}
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin lintDebug
+if ($LASTEXITCODE -ne 0) {
+    throw "lintDebug failed."
+}
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebug
+if ($LASTEXITCODE -ne 0) {
+    throw "assembleDebug failed."
+}
+git diff --check
+if ($LASTEXITCODE -ne 0) {
+    throw "git diff --check failed."
+}
+git status
+
+---
+
+BUILD + INSTALL + LAUNCH
+
+$ErrorActionPreference = "Stop"
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebug
+if ($LASTEXITCODE -ne 0) {
+    throw "assembleDebug failed."
+}
+adb install -r nexplay_kotlin\app\build\outputs\apk\debug\app-debug.apk
+if ($LASTEXITCODE -ne 0) {
+    throw "adb install failed."
+}
+adb shell am force-stop com.nexplay.app
+if ($LASTEXITCODE -ne 0) {
+    throw "force-stop failed."
+}
+adb shell monkey -p com.nexplay.app -c android.intent.category.LAUNCHER 1
+if ($LASTEXITCODE -ne 0) {
+    throw "launch failed."
+}
+adb shell pidof com.nexplay.app
+
+---
+
+adb install -r nexplay_kotlin\app\build\outputs\apk\debug\app-debug.apk
+adb shell am force-stop com.nexplay.app
+adb shell monkey -p com.nexplay.app -c android.intent.category.LAUNCHER 1
+adb shell pidof com.nexplay.app
+
+──────────────────────────────
+
+PLAYLIST CRASH + SELECTION MODE
+
+──────────────────────────────
+
+Begini, saya akan revert lagi. Ini untuk kepentingan Phase 24 dan 25.
+- Kita ubah lagi nama repo GitHub menjadi NexPlay saja, ini berisi semua data aplikasi termasuk development notes dan ini juga jadi public release nantinya
+- NexPlay Flutter (nexplay_flutter) beserta dokumentasinya, saya nyatakan sudah resmi menjadi legacy dan boleh dihapus. Tidak ada lagi dokumentasi yang menyebut Flutter
+- Ganti nama folder temp/ menjadi devnotes/
+- Commit dan push devnotes/
+- Ignore patches, patches/output, dan prompt
+- Masukan C:\laragon\www\nexplay\MIGRATION_PLAN.md, C:\laragon\www\nexplay\MIGRATION_ROADMAP.md, dan C:\laragon\www\nexplay\MIGRATION_STATUS.md ke folder devnotes/ karena ini catatan development
+- Folder docs hanya berisi dokumentasi NexPlay versi release yaitu NexPlay Kotlin
+- Perbaiki AGENTS.md dengan isi yang sesuai dengan cara kita bekerja, lengkapnya ada di custom instructions ChatGPT
+- Buat README.md versi lengkap, release, yang terdapat banner, screenshot, product knowledge, cara download, donate pokonya README.md untuk yang dipakai developer
+- CHANGELOG.md dibuat ketika sudah release
+- Gunakan Bahasa Inggris untuk semua bahasa dokumentasi kecuali untuk file-file yang berada di folder devnotes/
+Tunjukkan caranya secara lengkap, gunakan command untuk mengubah lokasi, nama file, dan sebagainya.

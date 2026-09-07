@@ -1,0 +1,891 @@
+# NexPlay Migration Status
+
+## Current Phase
+
+PHASE 24 - Production Cutover
+## Current Task
+
+PHASE 23 Production Migration Gate telah ditutup dan approved untuk masuk Production Cutover setelah final product hardening, static gate, dan targeted runtime acceptance pada Poco F5 serta Redmi Note 7. Current target adalah PHASE 24: freeze candidate, preserve/tag Flutter baseline, finalisasi version/release configuration, validate signed release artifact, install/upgrade/persistence smoke, dan menyiapkan release repository tanpa mengubah development origin.
+## Completed
+- PRE-00 workspace transition selesai.
+- PHASE 00 Flutter baseline audit selesai dan terverifikasi.
+- PHASE 01 native Kotlin bootstrap selesai dan terverifikasi.
+- PHASE 02 App Shell, Theme, and Navigation baseline selesai dan terverifikasi.
+- PHASE 03 Canonical Media Model selesai dan terverifikasi.
+- PHASE 04 Media Scanner: Audio selesai dan terverifikasi.
+- PHASE 05 Media Scanner: Video selesai dan terverifikasi.
+- PHASE 06 Media Library / Repository selesai dan terverifikasi.
+- PHASE 07 Folders Basic selesai dan terverifikasi.
+- PHASE 08 Queue Engine selesai dan terverifikasi.
+- PHASE 09 Playback Engine selesai dan terverifikasi.
+- PHASE 10 Queue + Playback Integration selesai dan terverifikasi.
+- PHASE 11 Audio Player UI selesai dan terverifikasi.
+- PHASE 12 Android MediaSession dan Background Audio selesai dan terverifikasi.
+- PHASE 13 Video Player UI selesai dan terverifikasi.
+- PHASE 14 Search selesai dan terverifikasi.
+- PHASE 15 PlayHub selesai diimplementasikan.
+- PHASE 16 Playlist Persistence selesai diimplementasikan.
+- PHASE 17 UI/UX Refinement checkpoint #1 selesai diimplementasikan dan terverifikasi.
+- PHASE 17 UI/UX Refinement checkpoint #2 selesai diimplementasikan dan terverifikasi.
+- PHASE 18 Settings dan DataStore selesai diimplementasikan dan terverifikasi.
+- PHASE 19 Functional Parity + Native UX Polish + Cleanup Audit selesai diimplementasikan dan terverifikasi.
+- PHASE 20 UI/UX Parity dan Polish merged into PHASE 19; no standalone execution.
+- PHASE 21 Codec Compatibility dan Old Device Hardening selesai dan terverifikasi.
+- PHASE 22 Performance dan Responsiveness selesai dan terverifikasi.
+- PHASE 23 Production Migration Gate selesai dan terverifikasi.
+- `QueuePlaybackCoordinator` tersedia sebagai explicit integration boundary.
+- Queue Engine tetap menjadi owner queue state dan queue policy.
+- Playback Engine tetap menjadi owner ExoPlayer dan runtime playback.
+- Coordinator tidak memiliki hidden atau duplicate queue.
+- Queue selection menyiapkan dan memainkan canonical current item melalui Playback Engine.
+- Manual `playAt()`, `next()`, dan `previous()` menjaga QueueState dan PlaybackState tetap sinkron.
+- Structural queue mutation yang mempertahankan current media tidak memaksa playback restart.
+- Queue `clear()` menghentikan current playback.
+- Mixed audio/video queue synchronization terverifikasi.
+- Completion policy tersedia melalui `QueueCompletionAction`:
+  - STOP;
+  - REPLAY_CURRENT;
+  - ADVANCED.
+- Repeat OFF:
+  - advance selama next item tersedia;
+  - stop pada final boundary.
+- Repeat ONE:
+  - replay current media;
+  - current index tetap.
+- Repeat ALL:
+  - wrap pada final boundary;
+  - single-item queue replay current media.
+- Shuffle tetap dimiliki Queue Engine.
+- Playback Engine tidak mengetahui repeat mode, current queue index, atau queue boundary.
+- Completion observer memvalidasi playback media terhadap current queue item sebelum memproses `ENDED`.
+- Stale `ENDED` callback dari source sebelumnya diabaikan ketika media tidak lagi sama dengan current queue item.
+- Verification menemukan stale-completion race pada mixed queue previous navigation.
+- Race tersebut diperbaiki tanpa memindahkan queue policy ke Playback Engine.
+- Final 9 instrumentation tests PASS setelah regression fix.
+- Native playback menggunakan Android Media3 / ExoPlayer.
+- `PlaybackEngine` memiliki satu private ExoPlayer dengan explicit `release()` lifecycle boundary.
+- Playback Engine menerima satu canonical `MediaItem` pada satu waktu.
+- Audio dan video menggunakan runtime ExoPlayer yang sama.
+- Immutable `PlaybackState` tersedia dan observable melalui `StateFlow`.
+- Playback status tersedia:
+  - IDLE;
+  - PREPARING;
+  - BUFFERING;
+  - READY;
+  - ENDED;
+  - ERROR.
+- Playback operations tersedia:
+  - `prepare()`;
+  - `play()`;
+  - `pause()`;
+  - `stop()`;
+  - `seek()`;
+  - `release()`.
+- Current position dan duration tersedia sebagai observable playback state.
+- Position update berjalan periodik hanya ketika playback aktif.
+- Canonical MediaStore `content://` URI dapat dimainkan langsung melalui Media3.
+- URI berscheme lain dan raw file path fallback didukung.
+- Invalid source dipetakan menjadi SOURCE error state.
+- Media3 runtime playback failure dipetakan menjadi RUNTIME error state.
+- Playback error diekspos sebagai state dan tidak membuat aplikasi crash.
+- Playback Engine tidak memiliki queue/current-index/next/previous logic.
+- Playback Engine tidak mengakses MediaStore secara langsung.
+- Raw ExoPlayer tidak diekspos ke Compose atau Player UI.
+- Queue + Playback completion integration kemudian diselesaikan pada PHASE 10 melalui explicit coordinator boundary.
+- MediaSession/background playback kemudian diselesaikan dan diverifikasi pada PHASE 12.
+- Video rendering surface tetap menjadi scope native Video Player.
+- Pure domain `QueueEngine` tersedia.
+- Immutable `QueueState` tersedia dan observable melalui `StateFlow`.
+- `currentItem` diturunkan dari queue items dan current index.
+- Queue mendukung canonical mixed audio/video `MediaItem`.
+- Queue operations tersedia:
+  - `setQueue()`;
+  - `playAt()`;
+  - `next()`;
+  - `previous()`;
+  - `append()`;
+  - `insertNext()`;
+  - `remove()`;
+  - `move()`;
+  - `clear()`;
+  - `toggleShuffle()`;
+  - `setRepeat()`.
+- Playback context tersedia:
+  - `FolderContext`;
+  - `PlaylistContext`;
+  - `SearchContext`;
+  - `PlayHubContext`;
+  - `SingleItemContext`.
+- Repeat mode tersedia:
+  - OFF;
+  - ONE;
+  - ALL.
+- Manual next/previous melakukan wrap hanya pada Repeat ALL.
+- Repeat ONE tetap terpisah dari manual transport dan completion behavior sekarang ditangani oleh Queue + Playback Integration.
+- Shuffle mempertahankan current item.
+- Disable shuffle dapat mengembalikan original queue order ketika restore snapshot masih valid.
+- Queue mutation mempertahankan current item bila masih tersedia.
+- Queue Engine tidak memiliki dependency ke Media3, ExoPlayer, Compose, Android UI, MediaSession, atau persistence.
+- Core Queue Engine memiliki unit-test coverage.
+- Audio dan video MediaStore scanner tersedia.
+- Canonical `MediaLibraryRepository` menjadi data access boundary untuk feature UI.
+- Repository mengagregasikan `AudioMediaScanner` dan `VideoMediaScanner`.
+- Canonical state tersedia melalui `StateFlow<MediaLibraryState>`.
+- Folders menggunakan canonical repository tanpa direct MediaStore access.
+- Initial library refresh berjalan di luar UI thread.
+- Folder list menampilkan media lokal dari canonical repository.
+- Audio/video count tersedia per folder.
+- Folder Detail menampilkan canonical media contents.
+- Folder sorting tersedia berdasarkan Folder name, Media count, dan Date modified.
+- Media sorting tersedia berdasarkan Name, Date modified, Type, Size, dan Duration.
+- Pull-to-refresh tersedia.
+- Loading, permission-denied, scan-failure, dan empty states tersedia.
+- Native presentation shell menggunakan independent motion ownership:
+  - Root Layer;
+  - Nested Layer;
+  - Overlay Layer;
+  - Vertical Layer;
+  - Bottom Bar Layer.
+- Folders dan Playhub tetap composed selama root-tab transition.
+- Folders → Playhub menggunakan full slide left.
+- Playhub → Folders menggunakan full slide right.
+- Folder Detail menggunakan shallow hierarchical motion dengan root retreat.
+- Search menggunakan reversible top-overlay motion.
+- Bottom bar bergerak independen tanpa me-resize root content.
+- Flat native color system diterapkan dengan restrained accent.
+- Restrained shape system diterapkan.
+- Main presentation menggunakan minimal elevation.
+- Folders dan Folder Detail menggunakan shared list-row geometry.
+- Folder icon menggunakan optical scaling tanpa mengubah leading-slot geometry.
+- Leading folder/media visual menggunakan balanced screen-edge spacing.
+- Chevron, MoreVert, dan header trailing action menggunakan shared trailing optical axis.
+- Navigation Compose dependency dihapus setelah current presentation shell tidak lagi membutuhkannya.
+- Android Studio generated example tests tanpa product coverage dihapus.
+- Manual visual polish pada physical Android device telah diterima.
+
+### PHASE 11 - Implemented
+
+- Dedicated native Full Audio Player tersedia untuk AudioItem.
+- Audio selection dari Folder Detail membentuk queue melalui QueuePlaybackCoordinator.
+- Full Audio Player membaca authoritative QueueState dan PlaybackState.
+- Player UI tidak memiliki ExoPlayer atau duplicate queue.
+- Play/pause, seek, previous, next, shuffle, repeat, dan queue access terhubung ke coordinator.
+- Repeat OFF / ONE / ALL tetap dimiliki Queue Engine.
+- Real A-B Repeat tersedia dan melakukan loop B -> A.
+- A-B markers di-reset ketika current media berubah.
+- NexPlay Control Deck tersedia.
+- Animated wavy active progress tersedia ketika playback berjalan.
+- Remaining progress menggunakan straight dimmed line.
+- Audio Mini Player tersedia ketika current audio aktif.
+- Tap Mini Player membuka Full Audio Player tanpa restart playback.
+- Swipe down Full Audio Player melakukan minimize.
+- Swipe right Mini Player melakukan stop/clear.
+- Runtime media permission UX tersedia.
+- SYSTEM / LIGHT / DARK theme selection tersedia dan persisted.
+- NexPlay flat purple visual system diterapkan.
+- Sora awalnya digunakan sebagai bundled local application font family pada PHASE 11; active Typography kemudian dikembalikan ke default Android / Compose pada PHASE 17 UI/UX Refinement #1.
+- Sora Normal, Medium, SemiBold, Bold, dan ExtraBold tersedia sebagai local resources.
+- Sora OFL license dibundel bersama aplikasi.
+- Add to Playlist tetap placeholder.
+- Rhythm Analyzer, Share, dan Details tetap placeholder.
+
+### PHASE 12 - Implemented
+
+- `NexPlayApplication` menjadi process-level owner satu `QueuePlaybackCoordinator`.
+- Compose menggunakan coordinator yang sama dan tidak lagi me-release playback runtime saat UI dispose.
+- Queue Engine tetap menjadi authoritative owner queue state dan queue policy.
+- Playback Engine tetap menjadi owner satu ExoPlayer.
+- `NexPlayPlaybackService` menggunakan Media3 `MediaSessionService`.
+- `NexPlaySessionPlayer` menjadi non-authoritative MediaSession adapter.
+- Service dan UI menggunakan `QueuePlaybackCoordinator` yang sama.
+- Tidak ada hidden queue, duplicate PlaybackEngine, atau ExoPlayer kedua.
+- MediaSession playlist diturunkan dari canonical QueueState.
+- Android play/pause, seek, previous, next, repeat, dan shuffle dirutekan ke existing playback integration.
+- Media notification tersedia.
+- Notification Previous / Play-Pause / Next tersedia dan bekerja.
+- Lockscreen media controls tersedia dan bekerja.
+- Lockscreen progress dan seek tersedia.
+- Headset transport controls tersedia dan bekerja.
+- Bluetooth transport controls tersedia dan bekerja.
+- Media3 audio focus handling tersedia dan bekerja.
+- Audio-becoming-noisy handling tersedia dan melakukan safe pause ketika output audio terputus.
+- Background playback tetap berjalan ketika Activity tidak foreground.
+- Playback tetap berjalan ketika layar dimatikan.
+- Active playback tetap berjalan ketika NexPlay keluar dari foreground/Recents sesuai media-service lifecycle.
+- System media surfaces menggunakan canonical title, artist, duration, position, dan playback state.
+- Android system controls tetap sinkron dengan queue/playback runtime yang sama.
+### PHASE 13 - Implemented
+
+- Native Video Player tersedia untuk canonical VideoItem.
+- Video Player menggunakan Media3 PlayerView.
+- Video Player menggunakan Player/ExoPlayer yang sama dari existing playback runtime.
+- Tidak ada ExoPlayer kedua atau hidden video playback engine.
+- Video selection dari Folder Detail membentuk canonical video queue dengan FolderContext.
+- Portrait playback tersedia.
+- Landscape fullscreen tersedia.
+- Orientation tidak membuat playback source baru.
+- Video Player menggunakan seamless black edge-to-edge presentation.
+- System-bar presentation menyatu dengan Video Player.
+- Controls auto-hide ketika playback berjalan.
+- Status bar mengikuti visibility normal player controls.
+- Single tap melakukan show/hide controls.
+- Double tap kiri melakukan seek backward 10 detik.
+- Double tap tengah melakukan play/pause.
+- Double tap kanan melakukan seek forward 10 detik.
+- Previous / Next mengikuti canonical Queue Engine.
+- Playback error ditampilkan melalui observable PlaybackState.
+- Video → Audio Only handoff tersedia tanpa queue/playback restart.
+- Audio Only → Video handoff tersedia tanpa queue/playback restart.
+- VideoItem Audio Only dapat diminimize menjadi Audio Mini Player.
+- Current playing title menggunakan running marquee pada area terkait.
+- Direct Video Player exit menghentikan dan membersihkan playback sesuai current Video Player back contract.
+- Child Lock tersedia pada Video Player.
+- Child Lock memblokir player tap, double tap, transport controls, dan Android Back.
+- Android Screen Pinning digunakan melalui startLockTask().
+- Persistent local 4-digit Child Lock PIN tersedia.
+- First-use PIN setup meminta Set PIN dan Confirm PIN.
+- PIN tersimpan secara lokal untuk penggunaan berikutnya.
+- Unlock affordance membutuhkan hold sekitar 2 detik.
+- Setelah hold, user harus memasukkan Child Lock PIN.
+- Incorrect PIN mempertahankan Child Lock.
+- Correct PIN keluar dari Child Lock dan menghentikan Lock Task bila aktif.
+- Child Lock tetap merupakan parental convenience boundary, bukan true managed-device kiosk security.
+
+### PHASE 14 - Implemented
+
+- Dedicated native Search screen tersedia.
+- Search membaca canonical `MediaLibraryRepository`.
+- Search berjalan live dan case-insensitive.
+- Search mencakup title, filename, artist, album, dan folder name.
+- Search result hanya canonical media files.
+- Search result list bukan playback queue.
+- Audio result membuka existing Audio Player.
+- Video result membuka existing Video Player.
+- Result me-resolve original folder sebelum membentuk playback source queue.
+- Folder-context playback menggunakan existing `FolderContext`.
+- Playback tetap melalui canonical `QueuePlaybackCoordinator`.
+- Search tidak membuat scanner, repository, Queue Engine, Playback Engine, MediaSession, atau ExoPlayer kedua.
+- Existing top-overlay motion dan bottom-bar visibility contract tetap dipertahankan.
+- Current native Folder/Search source queue tetap type-specific per media type.
+- Full mixed audio/video folder queue presentation parity tetap menjadi explicit known parity gap.
+
+### PHASE 15 - Implemented
+
+- Native PlayHub tersedia dengan section Queue dan Playlists.
+- Queue menggantikan Continue Playing sebagai playback-session surface.
+- Queue card membaca authoritative QueueState dan PlaybackState.
+- Seluruh Queue card membuka dedicated Queue Screen.
+- Queue card tetap fixed pada PlayHub.
+- Current title menggunakan one-line running marquee.
+- Metadata mengikuti Title → Artist → Album/Source Folder.
+- Queue progress mengikuti visual progress Audio Player Kotlin.
+- Queue Screen menampilkan canonical queue items dan currentIndex.
+- Current-playing Queue row menggunakan running marquee.
+- Queue item tap menggunakan playAt(index) tanpa membuat hidden queue baru.
+- AudioItem membuka Audio Player.
+- VideoItem membuka Video Player.
+- Direct source selection menggunakan setQueue() sebagai source-scoped replacement contract.
+- Source queue lama tidak otomatis digabung dengan source baru.
+- Cross-source mixing tetap reserved untuk future explicit ppend() / insertNext() action.
+- Runtime-only stopPlayback() tersedia terpisah dari clear().
+- Swipe Audio Mini Player menghentikan runtime tanpa menghapus QueueState.
+- Direct Video Player close menghentikan runtime tanpa menghapus QueueState.
+- Video → Audio Only dan Audio Only → Video mempertahankan QueueState.
+- Retained QueueState mempertahankan items, currentIndex, dan playbackContext selama process hidup.
+- Retained queue bukan persistent playback History.
+- Retained queue dapat dimainkan kembali dari canonical current item.
+- MediaSession service lifecycle mengikuti active playback runtime.
+- Search PlayHub dipindahkan dari header ke 3-dots menu.
+- Search tetap menggunakan existing Search overlay/navigation.
+- Recently Played tidak digunakan pada PHASE 15.
+- Playlists tetap placeholder sampai PHASE 16.
+- Queue card dan Playlists heading tetap fixed.
+- Hanya playlist rows area yang scrollable.
+- Tidak ada scanner, MediaLibraryRepository, QueueEngine, PlaybackEngine, MediaSession, atau ExoPlayer kedua.
+
+### PHASE 16 - Implemented
+
+- Native Room-backed playlist persistence tersedia.
+- PlaylistEntity tersedia.
+- PlaylistItemEntity tersedia.
+- PlaylistDao tersedia.
+- NexPlayDatabase tersedia.
+- PlaylistRepository tersedia sebagai persistence boundary.
+- Playlist ID menggunakan stable String identity.
+- Playlist item menyimpan canonical media URI dan persistent position.
+- Playlist delete melakukan cascade terhadap playlist items.
+- Duplicate media URI pada playlist yang sama diabaikan.
+- Create playlist tersedia.
+- Rename playlist tersedia.
+- Delete playlist tersedia.
+- Clear playlist tersedia.
+- Add media tersedia.
+- Multiple media add tersedia.
+- Remove media tersedia.
+- Reorder tersedia.
+- Playlist summaries observable tersedia.
+- Playlist Detail observable tersedia.
+- MediaStore metadata tidak diduplikasi secara penuh ke Room.
+- Current media metadata tetap berasal dari canonical MediaLibraryRepository.
+- Missing media dapat ditampilkan sebagai unavailable membership tanpa silent deletion.
+- Folder Detail selection mode tersedia.
+- Long press memasuki selection mode.
+- Tap saat selection mode aktif melakukan toggle selection tanpa playback.
+- Select All / Deselect All tersedia.
+- Android Back membersihkan selection terlebih dahulu.
+- Fixed selection action bar tersedia.
+- Multi-item Add to Playlist tersedia dari Folder Detail.
+- Audio Mini Player bergeser di atas selection action bar.
+- Audio Player Add to Playlist tersedia.
+- Shared Add to Playlist flow menerima single atau multiple media.
+- Playlist creation dilakukan melalui Add to Playlist flow.
+- PlayHub Playlists placeholder diganti persistent playlist rows.
+- PlayHub tidak lagi memiliki standalone New Playlist action.
+- Playlist Detail menyediakan Play All, Shuffle, Rename, Clear, Delete, Remove, dan Reorder.
+- Playlist Detail back-transition crash diperbaiki menggunakan null-safe animated layer.
+- Playlist playback membentuk canonical PlaylistContext.
+- Playlist playback menggunakan existing QueuePlaybackCoordinator.
+- Playlist tidak membuat Queue Engine, Playback Engine, MediaSession, atau ExoPlayer kedua.
+- Queue card background/header membuka Queue Screen.
+- Current media area pada Queue card membuka current player.
+- Queue transport controls tetap transport-only.
+- Queue card empty dan filled state menggunakan geometry yang lebih konsisten.
+- Rounded clipping dihilangkan dari current-media clickable area agar duration tidak terpotong.
+- NexPlay playlist ditetapkan sebagai media-agnostic tetapi audio-first.
+- AudioItem pada PlaylistContext menggunakan Audio Player.
+- VideoItem pada PlaylistContext menggunakan Audio Player / Audio Only secara default.
+- Mixed audio/video playlist tetap berada pada Audio Player.
+- VideoItem tetap canonical VideoItem dan tidak dikonversi menjadi AudioItem.
+- Explicit Switch to Video tetap tersedia tanpa queue rebuild.
+- Perpindahan playlist item setelah explicit Video presentation kembali menggunakan Audio Player.
+- Direct Folder/Search VideoItem tetap menggunakan Video Player.
+
+### PHASE 17 - UI/UX Refinement #1 - Implemented
+
+- Product direction PHASE 17 berubah dari History / Recently Played menjadi iterative UI/UX Refinement.
+- Persistent playback History / Recently Played tetap deferred.
+- Active Typography kembali menggunakan default Android / Compose font.
+- Existing typography sizing, weights, line heights, dan letter spacing tetap dipertahankan.
+- Sora FontFamily tidak lagi dipaksakan pada active Typography.
+- Folders overflow sekarang menyediakan explicit System / Light / Dark theme options.
+- Existing persisted NexPlayThemeMode tetap digunakan.
+- Audio Player visual hierarchy diperhalus tanpa mengubah queue/playback architecture.
+- Audio Player memperoleh NexPlay identity presentation.
+- Artwork fallback tetap digunakan dan dipusatkan.
+- Audio title menggunakan one-line running marquee.
+- Control Deck menggunakan circular controls dengan captions.
+- Previous / Play-Pause / Next presentation diperhalus.
+- Audio Player footer identity ditambahkan.
+- Audio Player tetap membaca canonical QueueState dan PlaybackState.
+- A-B Repeat, seek, shuffle, repeat, Add to Playlist, Queue, swipe minimize, dan player routing tetap dipertahankan.
+- Playlist Detail Play All menggunakan white foreground content.
+- Playlist move-up / move-down controls diganti dedicated drag handle.
+- Playlist reorder menggunakan native frame-driven interaction.
+- Dragged row mengikuti pointer dan live LazyColumn slot.
+- Reorder final dipersist melalui existing PlaylistRepository.
+- Room tidak ditulis pada setiap drag frame.
+- Tidak ada third-party reorder dependency.
+- Subsequent/reverse playlist drag responsiveness diperbaiki dengan current callback state.
+- Playlist item dapat di-reorder kembali setelah previous reorder.
+- Direct playlist-row delete icon diganti dengan 3-dots menu.
+- Playlist-row menu menyediakan Delete dan Add to Playlist.
+- Existing shared Add to Playlist flow tetap digunakan.
+- Playlist-row 3-dots mengikuti shared right-edge optical alignment dengan header.
+- Playlist Detail menggunakan dedicated 320 ms entry/exit motion.
+- Queue Engine ownership tidak berubah.
+- Playback Engine ownership tidak berubah.
+- PlaylistContext audio-first policy tidak berubah.
+- Room playlist schema tidak berubah.
+
+### PHASE 17 - Checkpoint #2 Implemented
+
+- Bottom Navigation menggunakan floating overlay presentation.
+- Visible Bottom Navigation surface menggunakan 64dp height.
+- Root content tidak lagi di-resize oleh Bottom Navigation.
+- Folders dan PlayHub content dapat scroll di belakang floating navigation.
+- Bottom list clearance menjaga trailing content tetap dapat diakses.
+- Audio Mini Player dan Bottom Navigation menggunakan shared 64dp floating-surface geometry.
+- Transparency pada floating surfaces dihapus.
+- Bottom Navigation dan Audio Mini Player menggunakan opaque application background.
+- Kedua floating surface menggunakan 2dp outline.
+- Floating surfaces tetap tanpa shadow dan tanpa blur.
+- Native dark background diselaraskan menjadi #111317.
+- Light theme tetap mempertahankan existing light background contract.
+- PlayHub playlist row pressed / tap state sekarang full-width.
+- Playlist Detail media row pressed / tap state sekarang full-width.
+- Horizontal row content alignment tetap dipertahankan.
+- Playlist Detail drag handle dan reorder interaction tidak berubah.
+- Playlist reorder persistence tetap melalui existing PlaylistRepository.
+- Current Flutter NexPlay launcher branding digunakan sebagai identity / parity reference.
+- Native Kotlin launcher assets tersedia untuk mdpi, hdpi, xhdpi, xxhdpi, dan xxxhdpi.
+- Adaptive NexPlay launcher icon tersedia.
+- Round NexPlay launcher icon tersedia.
+- Monochrome / themed launcher reference tersedia.
+- Play Store launcher source asset tersedia.
+- Android Studio default launcher icon tidak lagi menjadi active launcher presentation.
+- Native branded launch theme tersedia.
+- Pre-Android-12 branded launch background tersedia.
+- Android 12+ native system splash configuration tersedia.
+- Splash background menggunakan current Kotlin dark background #111317.
+- MainActivity berpindah dari launch theme ke normal NexPlay theme saat startup.
+- Tidak ada second-stage Compose bootstrap splash.
+- Tidak ada dependency icon / splash generator baru.
+- Queue Engine ownership tidak berubah.
+- Playback Engine ownership tidak berubah.
+- ExoPlayer ownership tidak berubah.
+- MediaSession ownership tidak berubah.
+- PlaylistRepository ownership tidak berubah.
+- Room schema tidak berubah.
+- PlaylistContext audio-first policy tidak berubah.
+
+### PHASE 18 - Implemented
+
+- AndroidX Preferences DataStore tersedia.
+- NexPlayPreferencesRepository tersedia sebagai application preference persistence boundary.
+- NexPlayApplication memiliki application-scoped preferences repository.
+- Theme mode sekarang menggunakan DataStore.
+- Existing legacy theme SharedPreferences memiliki migration path ke DataStore.
+- Folder sort field sekarang persistent.
+- Folder sort direction sekarang persistent.
+- Folder Detail media sort field sekarang persistent.
+- Folder Detail media sort direction sekarang persistent.
+- Theme default adalah SYSTEM.
+- Folder sort default adalah NAME + ASCENDING.
+- Folder Detail media sort default adalah NAME + ASCENDING.
+- Invalid stored enum values kembali ke explicit defaults.
+- Existing System / Light / Dark selector tetap digunakan.
+- Existing Folder sort controls tetap digunakan.
+- Existing Folder Detail media sort controls tetap digunakan.
+- Repeat mode tetap dimiliki QueueEngine / QueueState.
+- Shuffle tetap dimiliki QueueEngine / QueueState.
+- Repeat dan shuffle tidak dipersist pada PHASE 18.
+- Root tab tetap navigation session state.
+- Startup tetap menggunakan Folders sebagai root tab.
+- Child Lock PIN tetap menggunakan separate Child Lock preference ownership.
+- Playback speed tetap deferred karena belum diimplementasikan.
+- DataStore tidak menyimpan canonical media atau media metadata besar.
+- Playlist persistence tetap melalui PlaylistRepository dan Room.
+- Room schema tidak berubah.
+- PlaybackEngine ownership tidak berubah.
+- MediaSession ownership tidak berubah.
+- ExoPlayer ownership tidak berubah.
+- Native startup system-bar handling diperbaiki agar dark splash tidak bertransisi melalui gesture-navigation background terang ketika DataStore belum emit.
+- MainActivity menerapkan dark edge-to-edge startup state sebelum preference resolution.
+- Actual System / Light / Dark edge-to-edge state tetap diterapkan setelah preference resolve.
+
+### PHASE 22 - Implemented
+
+- Practical performance acceptance selesai pada Redmi Note 7 dan Infinix Hot 10 Play.
+- Poco F5 digunakan sebagai modern regression control.
+- Startup diterima tanpa obvious blocking UX pada tested devices.
+- Folders dan Folder Detail scrolling diterima.
+- Search typing/filtering diterima.
+- PlayHub, Queue, dan Playlist responsiveness diterima.
+- Audio Player dan Video Player transition diterima.
+- Mixed Audio ↔ Video transition tetap stabil.
+- Background/resume tidak menunjukkan UI freeze pada tested flows.
+- Tidak ditemukan obvious memory/resource issue pada tested flows.
+- Playback tetap stabil.
+- Shared MediaVisualLoader tersedia.
+- Shared MediaVisualBox dan MediaThumbnailBox tersedia.
+- Media visual loading dilakukan lazy dan tidak dimasukkan ke MediaStore scan.
+- Bounded in-memory bitmap cache digunakan.
+- Concurrent media visual load dibatasi.
+- Audio embedded artwork didukung.
+- Video thumbnail/frame loading didukung.
+- Safe fallback dipertahankan ketika visual tidak tersedia.
+- Folder Detail media rows menggunakan thumbnail/artwork.
+- Search media rows menggunakan thumbnail/artwork.
+- Playlist Detail media rows menggunakan thumbnail/artwork.
+- PlayHub current Queue menggunakan thumbnail/artwork.
+- dedicated Queue Screen menggunakan thumbnail/artwork.
+- Full Audio Player menggunakan real media artwork.
+- Audio Mini Player menggunakan real media artwork.
+- Playlist collection row tetap menggunakan playlist identity icon.
+- Empty dan populated PlayHub Queue card menggunakan stable card height yang sama.
+- Audio Mini Player hanya tampil pada Folders, Folder Detail, Queue Screen, dan Playlist Detail.
+- Audio Mini Player tidak tampil pada PlayHub, Search, Full Audio Player, atau Video Player.
+- QueueEngine ownership tidak berubah.
+- QueuePlaybackCoordinator ownership tidak berubah.
+- PlaybackEngine / single ExoPlayer ownership tidak berubah.
+- Room schema tidak berubah.
+- Tidak ada dependency image loader baru.
+- Tidak ada disk artwork cache baru.
+### PHASE 23 - Implemented
+
+- Android 12+ splash hardening menggunakan launcher foreground yang aman terhadap system splash masking/scaling.
+- Pre-Android-12 branded launch behavior tetap dipertahankan.
+- Add to Playlist menggunakan shared Material 3 bottom sheet.
+- Child Lock hanya tersedia pada fullscreen landscape Video Player.
+- Child Lock menggunakan persistent local 3x3 ordered unlock pattern.
+- Unlock pattern membutuhkan minimum 4 unique nodes.
+- Legacy 4-digit PIN bukan lagi active Child Lock unlock contract.
+- Successful hold-to-unlock memberikan haptic feedback sebelum pattern verification.
+- Android Screen Pinning / startLockTask tetap digunakan sebagai best-effort OS protection.
+- Audio Player Share tersedia.
+- Audio Player Details tersedia.
+- Video Player Share tersedia.
+- Video Player Details tersedia.
+- Full Audio Player swipe left membuka dedicated Queue.
+- Queue yang dibuka dari Audio Player mempertahankan return context ke Audio Player.
+- Queue Back mengembalikan Audio Player tanpa restart playback.
+- Queue → Audio Player menggunakan contextual horizontal return motion.
+- Audio Mini Player mendukung swipe up untuk membuka Full Audio Player.
+- Purple primary/secondary surface foreground diseragamkan menjadi putih.
+- About NexPlay menggunakan real NexPlay logo.
+- About icon tersedia konsisten pada Folders dan PlayHub.
+- Folders theme chooser menggunakan horizontal icon-only System / Dark / Light selector.
+- Folder Detail media sort options adalah Title, Album, Track, Duration, Date Modified.
+- Default Folder Detail media sort adalah Title ascending.
+- Invalid legacy media-sort field fallback ke Title.
+- Shared NexPlay right-side scrollbar tersedia untuk relevant overflowing lists.
+- Scrollbar menggunakan visual track/gutter.
+- Scrollbar mendukung drag fast-scroll.
+- Scrollbar muncul ketika user scroll/drag dan fade out ketika idle.
+- Full Audio Player menggunakan dedicated high-quality artwork request.
+- High-quality audio artwork memprioritaskan embedded artwork asli.
+- Full Audio Player artwork target dibatasi sampai 1024 px.
+- List thumbnail dan Audio Mini Player tetap menggunakan normal lightweight media-visual path.
+- MediaVisualLoader tetap menggunakan bounded in-memory cache.
+- Tidak ada new dependency.
+- Tidak ada QueueEngine kedua.
+- Tidak ada PlaybackEngine atau ExoPlayer kedua.
+- Tidak ada persistence schema change.
+- Tidak ada architecture/state-management replacement.
+
+## In Progress
+
+- PHASE 24 Production Cutover preparation.
+## Blocked
+
+- None.
+
+## Known Limitation
+
+- Android system media artwork belum menjadi bagian dari current UI artwork migration; MediaSession/system media surfaces tetap menggunakan existing metadata/fallback contract.
+- Retained QueueState tetap in-memory selama process hidup dan bukan persistent History.
+- Persistent playback History / Recently Played belum diimplementasikan.
+- Playback queue snapshot / relaunch resume belum diimplementasikan.
+- Practical codec/device acceptance tidak mengklaim universal codec support atau seluruh Android/OEM combination.
+- Practical performance acceptance tidak mengklaim exhaustive profiler/microbenchmark coverage atau universal performance guarantee.
+- Redmi Note 11 bukan blocker dan belum menjadi final practical verification target.
+- Child Lock menggunakan Android Screen Pinning dan bukan true Device Owner / managed-device kiosk mode.
+- System-level Child Lock escape behavior tetap mengikuti Android/OEM policy.
+- Production Migration Gate belum selesai.
+- Release repository NexPlay belum menjadi active release target sampai Production Cutover.
+- Production-ready belum dapat diklaim sebelum PHASE 23 dan PHASE 24 selesai.
+## Deferred
+
+- Centralized dedicated Settings screen.
+- Persistent playback History / Recently Played.
+- Rhythm Analyzer implementation.
+- Share implementation.
+- Details implementation.
+- Playback speed.
+- Playback queue snapshot / relaunch resume.
+- Haptic micro-interactions.
+- Artwork-driven player accent.
+- Change / Reset Child Lock PIN UI sampai Settings surface tersedia.
+- True managed-device kiosk / Device Owner mode.
+- Picture-in-Picture intentionally not implemented.
+- Floating video mini player intentionally not implemented.
+## Next
+
+- Freeze current PHASE 23-approved Kotlin candidate.
+- Preserve dan tag Flutter production baseline sesuai cutover plan.
+- Finalisasi native Kotlin version untuk production candidate.
+- Audit dan finalisasi release configuration.
+- Siapkan signed release artifact.
+- Jalankan release build validation.
+- Jalankan clean install smoke pada release artifact.
+- Jalankan upgrade/install-over-existing-app smoke bila applicable terhadap package/cutover contract.
+- Verifikasi playlist/theme/Child Lock pattern persistence setelah release install/upgrade.
+- Verifikasi MediaSession/background playback pada release artifact.
+- Verifikasi Audio/Video playback pada release artifact.
+- Verifikasi high-quality artwork dan scrollbar pada release artifact.
+- Siapkan future release repository NexPlay.
+- Tambahkan release remote tanpa mengganti origin development workspace.
+- Jangan publish production baseline sebelum PHASE 24 acceptance terpenuhi.
+## Verification
+
+### PHASE 22 Final Verification
+
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- `assembleDebug`: BUILD SUCCESSFUL.
+- `assembleDebugAndroidTest`: BUILD SUCCESSFUL.
+- `git diff --check`: PASS.
+- Redmi Note 7 practical performance acceptance: PASS.
+- Infinix Hot 10 Play practical performance acceptance: PASS.
+- Poco F5 regression acceptance: PASS.
+- Startup responsiveness acceptance: PASS.
+- Folder/Folder Detail responsiveness acceptance: PASS.
+- Search responsiveness acceptance: PASS.
+- PlayHub / Queue / Playlist responsiveness acceptance: PASS.
+- Audio Player / Video Player responsiveness acceptance: PASS.
+- Mixed Audio ↔ Video transition: PASS.
+- Background/resume responsiveness: PASS.
+- Playback stability: PASS.
+- Media thumbnails/artwork runtime presentation: PASS.
+- Full Audio Player artwork: PASS.
+- Audio Mini Player artwork: PASS.
+- Queue empty/populated stable card geometry: PASS.
+- Audio Mini Player screen visibility policy: PASS.
+- QueueEngine ownership preserved.
+- QueuePlaybackCoordinator ownership preserved.
+- PlaybackEngine / single ExoPlayer ownership preserved.
+- No performance-specific dependency added.
+- No image-loader dependency added.
+- No architecture rewrite performed.
+### PHASE 21 Final Verification
+
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- `assembleDebug`: BUILD SUCCESSFUL.
+- `assembleDebugAndroidTest`: BUILD SUCCESSFUL.
+- `git diff --check`: PASS.
+- Native Media3 / ExoPlayer single-runtime architecture tetap dipertahankan.
+- Poco F5 video rendering runtime: PASS.
+- Samsung A57 video rendering runtime: PASS.
+- Redmi Note 7 video rendering runtime: PASS.
+- Infinix Hot 10 Play video rendering runtime: PASS.
+- Redmi Note 7 comprehensive legacy-device acceptance: PASS.
+- Historical Flutter audio-only / missing-video-frame symptom tidak direproduksi pada tested native Kotlin devices.
+- Video Player system-bar old-device presentation telah di-harden.
+- Video Player system-bar runtime result diterima.
+- Fullscreen behavior tetap bekerja.
+- Child Lock behavior tetap bekerja.
+- Tidak ada dependency baru.
+- Tidak ada FFmpeg atau bundled software decoder.
+- Tidak ada ExoPlayer atau playback path kedua.
+- Exhaustive universal codec/profile/level/device certification tidak diklaim dan bukan acceptance requirement PHASE 21.
+- Redmi Note 11 belum menjadi bagian physical-device verification PHASE 21.
+### PHASE 19 Final Verification
+
+- Checkpoint #1 confirmed dead resource cleanup selesai.
+- Checkpoint #2 mixed Folder / Search queue parity diterima pada runtime.
+- Checkpoint #3 media refresh after real background → foreground diterima pada runtime.
+- Checkpoint #4 Android Open With / ACTION_VIEW cold-start dan warm-start diterima pada runtime.
+- Checkpoint #5 obsolete placeholder state/UI cleanup selesai.
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- `assembleDebug`: BUILD SUCCESSFUL.
+- `assembleDebugAndroidTest`: BUILD SUCCESSFUL.
+- `git diff --check`: PASS.
+- QueueEngine ownership tidak berubah.
+- PlaybackEngine / single ExoPlayer ownership tidak berubah.
+- QueuePlaybackCoordinator tetap canonical integration boundary.
+- PlaylistRepository / Room ownership tidak berubah.
+- Preferences DataStore ownership tidak berubah.
+- Tidak ada dependency baru.
+- Tidak ada Room schema change.
+- Tidak ada standalone PHASE 20 execution.
+- Implementation commit: `526c78d feat(parity): complete native parity and UX pass`.
+### PHASE 18 Final Verification
+
+- Theme mode persistence telah divalidasi pada runtime.
+- Folder sort field dan direction persistence telah divalidasi pada runtime.
+- Folder Detail media sort field dan direction persistence telah divalidasi pada runtime.
+- Explicit preference defaults tersedia.
+- Legacy theme SharedPreferences migration path tersedia.
+- Repeat dan shuffle tetap runtime QueueState dan tidak dipindahkan ke DataStore.
+- Root startup tetap Folders.
+- Child Lock PIN persistence tetap terpisah.
+- Startup gesture-navigation light flash regression telah diperbaiki dan diterima pada runtime.
+- testDebugUnitTest: BUILD SUCCESSFUL.
+- lintDebug: BUILD SUCCESSFUL.
+- assembleDebug: BUILD SUCCESSFUL.
+- assembleDebugAndroidTest: BUILD SUCCESSFUL.
+- git diff --check: PASS.
+- Room schema tidak berubah.
+- Queue / Playback architecture tidak berubah.
+### PHASE 17 UI/UX Refinement #2 Verification
+
+- testDebugUnitTest: BUILD SUCCESSFUL.
+- lintDebug: BUILD SUCCESSFUL.
+- assembleDebug: BUILD SUCCESSFUL.
+- git diff --check: PASS.
+- Floating Bottom Navigation telah divalidasi pada runtime.
+- Dark-mode Bottom Navigation dan Audio Mini Player presentation telah diterima.
+- Light-mode Bottom Navigation dan Audio Mini Player presentation telah diterima.
+- PlayHub playlist-row full-width interaction telah diterima.
+- Playlist Detail full-width media-row interaction telah diterima.
+- Flutter to Kotlin launch branding hash checks: PASS.
+- APK debug berhasil di-install pada physical Android device.
+- MainActivity cold launch melalui launcher command: PASS.
+- Native NexPlay launcher icon telah diverifikasi secara visual pada physical Android device.
+- Android Studio default launcher icon tidak lagi tampil.
+- Native splash resources dan cold-start path berhasil dibuild dan dijalankan.
+- Broad OEM-specific launcher / splash rendering matrix belum termasuk verification checkpoint #2.
+### PHASE 17 UI/UX Refinement #1 Verification
+
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- `assembleDebug`: BUILD SUCCESSFUL.
+- `git diff --check`: PASS.
+- Active default Android / Compose Typography berhasil dibuild.
+- System / Light / Dark theme selector berhasil dibuild.
+- Audio Player latest visual refinement diterima pada runtime.
+- Audio Player artwork centering diterima.
+- Playlist drag reorder interaction diterima pada runtime.
+- Playlist item dapat di-reorder kembali setelah previous reorder.
+- Subsequent/reverse drag responsiveness diterima.
+- Playlist row Delete / Add to Playlist 3-dots interaction tersedia.
+- Playlist row 3-dots alignment dengan header diterima.
+- Playlist Detail Play All white foreground diterima.
+- Playlist Detail 320 ms motion refinement diterima.
+- Queue / Playback architecture tidak diubah.
+- PlaylistContext audio-first policy tidak diubah.
+- Room playlist schema tidak diubah.
+- PHASE 17 tetap IN PROGRESS setelah checkpoint #1.
+### PHASE 16 Final Verification
+
+- 	estDebugUnitTest: BUILD SUCCESSFUL.
+- lintDebug: BUILD SUCCESSFUL.
+- ssembleDebug: BUILD SUCCESSFUL.
+- git diff --check: PASS.
+- Folder Detail selection mode berhasil dibuild dan dijalankan.
+- Multi-item Add to Playlist flow tersedia.
+- Playlist rows tampil pada PlayHub.
+- Playlist Detail berhasil dijalankan.
+- Playlist Back regression yang sebelumnya crash telah diperbaiki dan diterima pada runtime.
+- Queue card background/header membuka Queue Screen.
+- Current media area pada Queue card membuka player tanpa queue rebuild.
+- Queue transport controls tetap transport-only.
+- PlayHub Queue duration clipping telah diperbaiki.
+- Standalone New Playlist action di PlayHub telah dihapus.
+- Video-only playlist menggunakan Audio Player / Audio Only secara default.
+- Mixed audio/video playlist tetap menggunakan Audio Player selama playlist playback.
+- Explicit Switch to Video mempertahankan canonical VideoItem dan PlaylistContext.
+- Targeted PlaylistRepository instrumentation test belum berhasil dieksekusi.
+- Latest targeted instrumentation run gagal sebelum test start karena Android device menolak test APK installation dengan INSTALL_FAILED_USER_RESTRICTED.
+- Latest targeted run mencatat Starting 0 tests dan Finished 0 tests; kondisi tersebut bukan PlaylistRepository assertion/test failure.
+- Dedicated Room instrumentation perlu dijalankan ulang ketika device mengizinkan test APK installation.
+### PHASE 15 Final Verification
+
+- 	estDebugUnitTest: BUILD SUCCESSFUL.
+- lintDebug: BUILD SUCCESSFUL.
+- ssembleDebug: BUILD SUCCESSFUL.
+- git diff --check: PASS.
+- Native PlayHub dan Queue behavior telah divalidasi secara iteratif pada physical Android development device.
+- Queue card menggunakan canonical queue/playback state.
+- Queue Screen menggunakan canonical queue dan playAt(index).
+- Direct source selection menggunakan replacement queue contract.
+- Audio Mini Player stop mempertahankan retained queue.
+- Video Player close mempertahankan retained queue.
+- Video ↔ Audio Only mempertahankan QueueState.
+- Search entry tersedia melalui PlayHub 3-dots menu.
+- Queue card dan Playlists heading fixed; playlist rows menggunakan isolated scroll area.
+- connectedDebugAndroidTest latest run: 8/12 PASS.
+- Empat playback instrumentation tests gagal pada generated silent-WAV playback start/completion path.
+- Root cause instrumentation failure belum dibuktikan dan tetap menjadi follow-up concern.
+### PHASE 14 Final Verification
+
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- `assembleDebug`: BUILD SUCCESSFUL.
+- `git diff --check`: PASS.
+- Native Search berhasil dibuild dan dijalankan pada physical Android development device.
+- Live Search query menampilkan matching local media.
+- Search UI/runtime behavior diterima user.
+- Search tetap menggunakan canonical MediaLibraryRepository.
+- Search result list tidak menjadi hidden playback queue.
+- Audio dan video result menggunakan existing canonical player routing.
+- Tidak ada scanner, repository, Queue Engine, Playback Engine, MediaSession, atau ExoPlayer kedua.
+
+### PHASE 13 Final Verification
+
+- 	estDebugUnitTest: BUILD SUCCESSFUL.
+- lintDebug: BUILD SUCCESSFUL.
+- ssembleDebug: BUILD SUCCESSFUL.
+- Native Video Player dijalankan pada physical Android development device.
+- Portrait video playback: PASS.
+- Landscape fullscreen: PASS.
+- Video → Audio Only seamless handoff: PASS.
+- Audio Only → Video seamless handoff: PASS.
+- Video Audio Only → Audio Mini Player: PASS.
+- Double tap kiri seek -10 detik: PASS.
+- Double tap tengah play/pause: PASS.
+- Double tap kanan seek +10 detik: PASS.
+- System-bar Video Player presentation diterima pada runtime.
+- Child Lock runtime flow diterima.
+- Persistent 4-digit PIN setup/confirmation flow diterima.
+- Long-hold unlock + PIN verification flow diterima.
+- Incorrect PIN mempertahankan Child Lock.
+- Correct PIN keluar dari Child Lock.
+- Broad old-device / codec compatibility belum termasuk verification PHASE 13.
+### PHASE 12 Final Verification
+
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- Native debug build berhasil dijalankan pada physical Android device.
+- Media notification: PASS.
+- Notification Previous / Play-Pause / Next: PASS.
+- Lockscreen media controls: PASS.
+- Lockscreen Previous / Play-Pause / Next: PASS.
+- Lockscreen progress/seek: PASS.
+- Background playback setelah Home: PASS.
+- Screen-off playback: PASS.
+- Active playback setelah app keluar dari foreground/Recents: PASS.
+- Bluetooth transport controls: PASS.
+- Headset transport controls: PASS.
+- Audio focus handling: PASS.
+- Audio-becoming-noisy / unplug safe pause: PASS.
+- Android system controls dan NexPlay UI tetap menggunakan canonical queue/playback runtime yang sama: PASS.
+
+### Previous Verification
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- `assembleDebug`: BUILD SUCCESSFUL.
+- `git diff --check`: clean.
+- Queue completion policy unit tests: PASS.
+- Initial Queue + Playback instrumentation verification menemukan satu stale-completion race pada mixed queue previous navigation.
+- Race diperbaiki dengan memvalidasi playback completion media terhadap current queue item sebelum memproses `ENDED`.
+- Final `connectedDebugAndroidTest`: BUILD SUCCESSFUL.
+- 9 instrumentation tests selesai dan PASS pada physical Android 15 device `23049PCD8G`.
+- Mixed audio → video → audio queue/playback synchronization: PASS.
+- Actual short-media end-of-track → next queue item: PASS.
+- Repeat ONE actual replay: PASS.
+- `installDebug`: BUILD SUCCESSFUL.
+- App di-install kembali setelah instrumentation verification.
+- `READ_MEDIA_AUDIO`: granted pada verification device.
+- `READ_MEDIA_VIDEO`: granted pada verification device.
+- `MainActivity`: cold launch successful.
+- Runtime process aktif setelah launch.
+- Tidak ditemukan `FATAL EXCEPTION`.
+- Tidak ditemukan ANR.
+- Current app shell tetap dapat cold-launch setelah Queue + Playback Integration ditambahkan.
+
+### PHASE 11 Verification
+
+- testDebugUnitTest: BUILD SUCCESSFUL.
+- lintDebug: BUILD SUCCESSFUL.
+- assembleDebug: BUILD SUCCESSFUL.
+- connectedDebugAndroidTest: BUILD SUCCESSFUL.
+- 11 instrumentation tests selesai dan PASS pada physical Android 15 device.
+- Queue + Playback regression coverage tetap PASS.
+- A-B Repeat instrumentation coverage tersedia.
+- Final Audio Player UI telah divalidasi secara iteratif pada physical device.
+- Full/Mini Player choreography telah divalidasi.
+- Runtime permission flow telah divalidasi.
+- Internal theme selection telah divalidasi.
+- Sora typography integration berhasil dibuild dan dijalankan.
+
+### PHASE 23 Final Verification
+
+- compileDebugKotlin telah PASS setelah final structural/UI fixes.
+- testDebugUnitTest dijalankan sebagai final closeout gate.
+- lintDebug dijalankan sebagai final closeout gate.
+- assembleDebug dijalankan sebagai final closeout gate.
+- assembleDebugAndroidTest dijalankan sebagai final closeout gate.
+- git diff --check dijalankan sebagai final closeout gate.
+- Latest targeted runtime smoke pada Poco F5: PASS.
+- Latest targeted runtime smoke pada Redmi Note 7: PASS.
+- Full Audio Player high-quality artwork pada Poco F5: PASS.
+- Full Audio Player high-quality artwork pada Redmi Note 7: PASS.
+- Latest scrollbar presentation/runtime behavior diterima.
+- Playback tetap stabil selama targeted runtime validation.
+- PHASE 23 approved untuk masuk PHASE 24 Production Cutover.
+## Last Commit
+
+feat(hardening): finalize production migration gate - PHASE 23 closeout checkpoint.

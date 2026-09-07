@@ -1,0 +1,29 @@
+# NexPlay
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+
+# Kotlin / Gradle generated files
+nexplay_kotlin/.gradle/
+nexplay_kotlin/build/
+nexplay_kotlin/app/build/
+nexplay_kotlin/local.properties
+
+# Local engineering workspace
+/patches/
+/patches/output/
+/prompt/
+
+# Release signing secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Logs
+*.log

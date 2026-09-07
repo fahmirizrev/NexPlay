@@ -1,0 +1,1398 @@
+NEXPLAY — SNAPSHOT PROGRESS IMPLEMENTASI
+========================================
+
+Tanggal snapshot:
+2026-09-02
+
+Repository:
+C:\laragon\www\nexplay
+
+Branch:
+main
+
+Remote:
+origin/main
+
+Status repository terakhir:
+- Working tree clean.
+- Local main sinkron dengan origin/main.
+- PHASE 11 sudah selesai, diverifikasi, didokumentasikan, di-commit, dan di-push.
+- Chat berikutnya dimulai dari PHASE 12.
+
+Commit terakhir:
+c1c430a chore: clean Sora license whitespace
+
+Commit utama PHASE 11:
+973d521 feat(player): add native audio player
+
+Commit penting sebelumnya:
+5f66a97 fix(playback): include queue playback coordinator
+d4b209d feat(playback): integrate queue with playback engine
+9071b3d feat(playback): add Media3 playback engine
+9ab258d feat(queue): implement native queue engine
+
+
+======================================================================
+1. POSISI IMPLEMENTASI SAAT INI
+======================================================================
+
+Migrasi NexPlay dari Flutter ke native Android Kotlin sudah sampai:
+
+PHASE 11 — Audio Player UI
+STATUS:
+COMPLETED + VERIFIED + DOCUMENTED + COMMITTED + PUSHED
+
+Phase berikutnya:
+
+PHASE 12 — Android MediaSession dan Background Audio
+STATUS:
+NEXT / CURRENT PHASE
+
+PHASE 12 belum diimplementasikan pada snapshot ini.
+
+
+======================================================================
+2. PHASE YANG SUDAH SELESAI
+======================================================================
+
+PRE-00
+- Workspace transition selesai.
+
+PHASE 00 — Flutter Baseline Audit
+- Baseline Flutter dibekukan sebagai parity reference.
+- Audit selesai dan terverifikasi.
+
+PHASE 01 — Native Kotlin Bootstrap
+- Native Android Kotlin baseline tersedia.
+- Bootstrap selesai dan terverifikasi.
+
+PHASE 02 — App Shell, Theme, and Navigation
+- Native presentation shell tersedia.
+- Root/nested/overlay/vertical/bottom-bar motion ownership dipisahkan.
+- Folders dan Playhub tetap composed saat root-tab transition.
+- Folder Detail menggunakan hierarchical motion.
+- Search menggunakan top overlay.
+- Bottom bar bergerak independen.
+- Flat native color system tersedia.
+- Restrained shape/elevation diterapkan.
+
+PHASE 03 — Canonical Media Model
+- Canonical media representation tersedia.
+
+PHASE 04 — Media Scanner: Audio
+- Audio MediaStore scanner selesai.
+
+PHASE 05 — Media Scanner: Video
+- Video MediaStore scanner selesai.
+
+PHASE 06 — Media Library / Repository
+- Canonical MediaLibraryRepository tersedia.
+- Audio dan video scanner diagregasikan.
+- State tersedia melalui StateFlow.
+- Repository menjadi data boundary untuk UI.
+
+PHASE 07 — Folders Basic
+- Folder list menggunakan canonical repository.
+- Audio/video count per folder tersedia.
+- Folder Detail menampilkan canonical media items.
+- Sorting tersedia.
+- Pull-to-refresh tersedia.
+- Loading/error/permission/empty state tersedia.
+
+PHASE 08 — Queue Engine
+- Pure domain QueueEngine tersedia.
+- QueueState immutable dan observable.
+- Queue dapat berisi audio/video canonical MediaItem.
+- Context tersedia:
+  - FolderContext
+  - PlaylistContext
+  - SearchContext
+  - PlayHubContext
+  - SingleItemContext
+- Operations tersedia:
+  - setQueue()
+  - playAt()
+  - next()
+  - previous()
+  - append()
+  - insertNext()
+  - remove()
+  - move()
+  - clear()
+  - toggleShuffle()
+  - setRepeat()
+- Repeat mode:
+  - OFF
+  - ONE
+  - ALL
+- Manual next/previous wrap hanya pada Repeat ALL.
+- Repeat ONE tidak mengambil alih manual navigation.
+- Shuffle mempertahankan current item.
+- Queue Engine tidak bergantung pada Media3, ExoPlayer, Compose, UI,
+  MediaSession, atau persistence.
+
+PHASE 09 — Playback Engine
+- Android Media3 / ExoPlayer digunakan.
+- PlaybackEngine memiliki satu private ExoPlayer.
+- PlaybackEngine menjadi owner runtime playback.
+- Raw ExoPlayer tidak diekspos ke UI.
+- PlaybackState immutable dan observable.
+- Status:
+  - IDLE
+  - PREPARING
+  - BUFFERING
+  - READY
+  - ENDED
+  - ERROR
+- Operations:
+  - prepare()
+  - play()
+  - pause()
+  - stop()
+  - seek()
+  - release()
+- Position/duration tersedia.
+- Normal playback position publication sekitar 250 ms.
+- content:// MediaStore dapat dimainkan.
+- Source/runtime error dipetakan ke observable playback error state.
+- PlaybackEngine tidak mengetahui queue policy/current index/next/previous.
+
+PHASE 10 — Queue + Playback Integration
+- QueuePlaybackCoordinator menjadi explicit integration boundary.
+- Architecture:
+  QueueEngine
+  ↓
+  QueuePlaybackCoordinator
+  ↓
+  PlaybackEngine
+  ↓
+  Media3 / ExoPlayer
+
+- QueueEngine tetap owner queue.
+- PlaybackEngine tetap owner ExoPlayer.
+- Coordinator tidak memiliki hidden queue.
+- Completion policy:
+  Repeat OFF:
+  - advance jika ada next item;
+  - stop pada final boundary.
+
+  Repeat ONE:
+  - replay current item.
+
+  Repeat ALL:
+  - wrap pada final boundary;
+  - single-item queue replay.
+
+- Stale ENDED race ditemukan saat verification PHASE 10.
+- Fix:
+  completion hanya diproses jika PlaybackState.currentMedia masih sama
+  dengan QueueState.currentItem.
+- Stale callback dari source sebelumnya diabaikan.
+- Mixed audio/video regression coverage dipertahankan.
+
+
+======================================================================
+3. PHASE 11 — AUDIO PLAYER UI YANG SUDAH SELESAI
+======================================================================
+
+PHASE 11 adalah native foreground Audio Player presentation layer.
+
+Prinsip arsitektur yang berhasil dipertahankan:
+
+- Audio Player UI bukan pemilik ExoPlayer.
+- Audio Player UI bukan pemilik queue.
+- QueueState dan PlaybackState tetap authoritative.
+- User actions diteruskan ke QueuePlaybackCoordinator.
+- Tidak ada duplicate playback runtime.
+- Tidak ada hidden queue di UI.
+
+
+----------------------------------------------------------------------
+3.1 FULL AUDIO PLAYER
+----------------------------------------------------------------------
+
+Dedicated Full Audio Player native tersedia.
+
+Audio item dari Folder Detail:
+- membentuk audio queue;
+- queue mengikuti sorted/current Folder Detail context;
+- selected item menjadi current item;
+- playback berjalan melalui coordinator;
+- Full Audio Player dibuka.
+
+Full Audio Player menampilkan:
+- artwork/fallback;
+- title;
+- artist;
+- album;
+- elapsed time;
+- duration;
+- seek/progress;
+- transport controls;
+- Control Deck;
+- queue access;
+- More menu.
+
+Metadata typography terakhir:
+- title naik menjadi headlineSmall;
+- artist menjadi bodyLarge;
+- album menjadi bodyMedium;
+- spacing title → artist = 6 dp;
+- spacing artist → album = 6 dp.
+
+Spacing area playback terakhir:
+- waveform/progress → timestamps = 12 dp;
+- timestamps → Control Deck = 12 dp;
+- top Control Deck → bottom transport = 10 dp.
+
+
+----------------------------------------------------------------------
+3.2 AUDIO MINI PLAYER
+----------------------------------------------------------------------
+
+Audio Mini Player tersedia jika:
+- ada current audio;
+- Full Audio Player sedang tidak expanded.
+
+Behavior:
+- Tap Mini Player → membuka Full Audio Player tanpa prepare/restart media.
+- Swipe right Mini Player → coordinator.clear() / stop + dismiss.
+- Player state tetap berasal dari playback/queue runtime yang sama.
+
+
+----------------------------------------------------------------------
+3.3 FULL PLAYER GESTURE
+----------------------------------------------------------------------
+
+- Swipe down Full Audio Player → minimize ke Audio Mini Player.
+- Tidak menggunakan navigation framework baru.
+- Gesture merupakan bagian dari existing player choreography.
+
+
+----------------------------------------------------------------------
+3.4 NEXPLAY CONTROL DECK
+----------------------------------------------------------------------
+
+Control Deck final:
+
+Top row:
+[ Seek BW ] [ Shuffle ] [ A-B ] [ Add to Playlist ] [ Repeat ] [ Seek FW ]
+
+Bottom row:
+[ Previous ] [             PLAY / PAUSE             ] [ Next ]
+
+Layout:
+- top dan bottom row memiliki total width yang sama;
+- top row memiliki enam slot equal;
+- bottom row ratio kira-kira 1 : 4 : 1;
+- Play/Pause menjadi control utama horizontal.
+
+Behavior:
+- Seek BW/FW = momentary ±10 second controls.
+- Shuffle:
+  - active memakai primary accent;
+  - policy tetap dimiliki QueueEngine.
+- Repeat:
+  - OFF → ONE → ALL → OFF;
+  - active jika != OFF;
+  - semantics tetap milik QueueEngine.
+- Add to Playlist:
+  - masih disabled/deferred placeholder.
+- Previous/Next:
+  - menggunakan queue navigation.
+- Play/Pause:
+  - purple primary control;
+  - white icon/text.
+
+
+----------------------------------------------------------------------
+3.5 REAL A-B REPEAT
+----------------------------------------------------------------------
+
+A-B sudah nyata, bukan placeholder.
+
+Interaction:
+1. Tap pertama:
+   - set marker A.
+2. Tap kedua:
+   - set marker B.
+3. Tap ketiga:
+   - clear A dan B.
+
+Behavior:
+- ketika playback mencapai B:
+  seek kembali ke A.
+
+Lifecycle:
+- A-B markers reset saat media/current item berubah.
+
+Architecture:
+- QueueEngine tidak diubah untuk A-B.
+- A-B merupakan playback-range behavior, bukan repeat queue policy.
+- Normal playback state publication tetap sekitar 250 ms.
+- Saat A-B aktif, boundary checking menggunakan interval lebih rapat
+  hanya selama diperlukan.
+
+
+----------------------------------------------------------------------
+3.6 WAVY PROGRESS
+----------------------------------------------------------------------
+
+NexPlay sekarang memiliki distinctive wavy progress.
+
+Paused:
+━━━━━━━━━━━━●────────────
+
+Playing:
+～～～～～～●────────────
+
+Behavior:
+- saat playing:
+  active progress digambar sebagai wave;
+  remaining progress tetap straight dimmed line.
+- saat paused:
+  active progress kembali straight.
+- seek tetap interactive melalui transparent Material Slider layer.
+
+Tuning terakhir yang diketahui:
+- progressStrokeWidth = 5.dp
+- waveAmplitude = 3.5.dp
+- waveLength = 36.dp
+- thumbRadius = 6.dp
+- phase animation full turn sekitar 2400 ms
+- visual progress interpolation sekitar 260 ms
+- waveform container height = 32.dp
+
+Signature visual NexPlay:
+- flat canvas;
+- restrained purple accent;
+- wavy playback motion;
+- wide Play/Pause control;
+- compact Control Deck.
+
+Hindari membuatnya seperti Rhythm clone.
+
+
+----------------------------------------------------------------------
+3.7 PLAYER FALLBACK IDENTITY
+----------------------------------------------------------------------
+
+- Full artwork fallback memiliki NexPlay-specific N identity.
+- Mini Player fallback juga menggunakan identity yang konsisten.
+- Dark mode fallback sudah disesuaikan supaya tidak terlalu menyatu
+  dengan background.
+- Real artwork extraction/display masih deferred.
+
+
+----------------------------------------------------------------------
+3.8 MORE MENU
+----------------------------------------------------------------------
+
+More menu Audio Player memiliki:
+
+Active/available:
+- Queue.
+
+Deferred placeholders:
+- Rhythm Analyzer.
+- Share.
+- Details.
+
+Add to Playlist tetap placeholder di Control Deck sampai native playlist
+persistence phase.
+
+
+======================================================================
+4. RUNTIME MEDIA PERMISSION UX
+======================================================================
+
+PHASE 11 juga menyelesaikan runtime permission flow.
+
+FoldersScreen menggunakan Android Activity Result API.
+
+Mapping permission:
+Android 13+:
+- READ_MEDIA_AUDIO
+- READ_MEDIA_VIDEO
+
+Android <= 12:
+- READ_EXTERNAL_STORAGE sesuai scanner requirements.
+
+Behavior:
+- first missing permission → Android permission prompt;
+- grant → library refresh;
+- deny → UI menawarkan Allow access;
+- permanent denial / blocked → Open settings;
+- NexPlayEmptyState dapat memiliki optional action.
+
+Jangan merusak flow ini pada PHASE 12.
+
+
+======================================================================
+5. THEME SYSTEM YANG SUDAH TERIMPLEMENTASI
+======================================================================
+
+Theme mode:
+- SYSTEM
+- LIGHT
+- DARK
+
+Persistence:
+- SharedPreferences.
+
+Default:
+- SYSTEM.
+
+MainActivity:
+- resolve theme;
+- system bars mengikuti resolved theme.
+
+UI:
+- Dark mode/theme control berada di Folders More/3-dots menu.
+- Tidak ada standalone theme icon.
+
+Current native palette:
+
+LIGHT
+Primary:
+#7C8DFF
+
+Background:
+#F3F4F6
+
+Foreground:
+#111827
+
+Surface:
+#FFFFFF
+
+Surface Foreground:
+#1F2937
+
+Muted:
+#E5E7EB
+
+Muted Foreground:
+#6B7280
+
+Accent:
+#EFF1FF
+
+
+DARK
+Primary:
+#7C8DFF
+
+Background:
+#08090B
+
+Foreground:
+#F5F7FA
+
+Surface:
+#111317
+
+Surface Foreground:
+#ECEFF3
+
+Muted:
+#171A1F
+
+Muted Foreground:
+#98A2B3
+
+Accent:
+#171A2E
+
+Visual principle:
+- flat;
+- restrained;
+- no gradients;
+- no glow;
+- purple hanya sebagai signal/accent;
+- readability tetap prioritas.
+
+
+======================================================================
+6. TYPOGRAPHY — SORA
+======================================================================
+
+App sekarang menggunakan Sora sebagai global native application font.
+
+Sebelumnya:
+FontFamily.SansSerif
+
+Sekarang:
+bundled Sora FontFamily.
+
+Bundled weights:
+- sora_regular.ttf — Normal / 400
+- sora_medium.ttf — Medium / 500
+- sora_semibold.ttf — SemiBold / 600
+- sora_bold.ttf — Bold / 700
+- sora_extrabold.ttf — ExtraBold / 800
+
+Location:
+nexplay_kotlin/app/src/main/res/font/
+
+License:
+nexplay_kotlin/app/src/main/res/raw/sora_ofl.txt
+
+Sora:
+- open-source;
+- SIL Open Font License;
+- tidak menggunakan runtime font dependency.
+
+Global typography tetap berada di:
+nexplay_kotlin/app/src/main/java/com/nexplay/app/ui/theme/Type.kt
+
+Existing typography scale, font size, line-height, letter spacing, dan
+hierarchy dipertahankan kecuali metadata Audio Player yang memang dinaikkan
+satu step sesuai keputusan user.
+
+Cleanup terakhir:
+trailing whitespace pada sora_ofl.txt sudah diperbaiki di commit:
+c1c430a chore: clean Sora license whitespace
+
+
+======================================================================
+7. VERIFICATION PHASE 11
+======================================================================
+
+Final closeout PHASE 11:
+
+testDebugUnitTest:
+BUILD SUCCESSFUL
+
+lintDebug:
+BUILD SUCCESSFUL
+
+assembleDebug:
+BUILD SUCCESSFUL
+
+connectedDebugAndroidTest:
+BUILD SUCCESSFUL
+
+Physical device:
+Android 15
+
+Instrumentation:
+11 tests PASS
+
+Regression coverage mencakup:
+- Queue + Playback synchronization;
+- stale completion protection;
+- A-B Repeat;
+- theme preference store;
+- existing playback integration.
+
+git diff --check:
+akhirnya clean setelah Sora OFL whitespace cleanup.
+
+Runtime/manual verification dilakukan iteratif selama PHASE 11 untuk:
+- Full Audio Player;
+- Mini Player;
+- Control Deck;
+- wavy progress;
+- active/inactive progress;
+- metadata typography;
+- light/dark presentation;
+- permission flow;
+- Sora integration.
+
+Jangan klaim lebih dari evidence ini.
+Tidak ada claim production-ready global untuk seluruh migration.
+
+
+======================================================================
+8. DOCUMENTATION STATE
+======================================================================
+
+Active migration documentation:
+
+MIGRATION_PLAN.md
+MIGRATION_ROADMAP.md
+MIGRATION_STATUS.md
+docs/FLUTTER_BASELINE_AUDIT.md
+
+Tidak ada active root:
+README.md
+CHANGELOG.md
+ROADMAP.md
+
+Maka untuk migration closeout sebelumnya, docs yang diperbarui adalah:
+- MIGRATION_STATUS.md
+- MIGRATION_ROADMAP.md
+- MIGRATION_PLAN.md
+
+FLUTTER_BASELINE_AUDIT.md:
+- dianggap frozen/reference;
+- jangan diedit hanya untuk mencatat progress Kotlin.
+
+MIGRATION_STATUS sekarang:
+Current Phase:
+PHASE 12 - Android MediaSession dan Background Audio
+
+PHASE 10 tetap dipertahankan lengkap.
+PHASE 11 ditandai implemented + verified.
+PHASE 12 menjadi current/next.
+
+MIGRATION_ROADMAP:
+- PHASE 10 tetap utuh;
+- PHASE 11:
+  COMPLETED + VERIFIED - 2026-09-02
+- PHASE 12:
+  IN PROGRESS - 2026-09-02
+
+MIGRATION_PLAN:
+- Audio Player UI dinyatakan selesai/verified pada PHASE 11;
+- MediaSession/background playback menjadi scope berikutnya PHASE 12.
+
+
+======================================================================
+9. MASALAH YANG AKAN DISELESAIKAN DI PHASE 12
+======================================================================
+
+PHASE 12:
+Android MediaSession dan Background Audio
+
+Tujuan utama:
+mengintegrasikan playback runtime NexPlay dengan Android OS tanpa merusak
+ownership architecture PHASE 08–11.
+
+Target feature dari roadmap:
+
+1. MediaSession
+2. MediaSessionService
+3. Media notification
+4. Background playback
+5. Audio focus
+6. Headset controls
+7. Bluetooth controls
+8. Noisy-audio handling
+9. Lockscreen controls
+
+Acceptance roadmap:
+
+[ ] Background audio
+[ ] Notification control
+[ ] Lockscreen control
+[ ] Bluetooth control
+[ ] Headset button
+[ ] Audio focus
+[ ] Unplug headset safe
+
+Checkpoint target roadmap:
+
+feat(android): add MediaSession background playback
+
+
+======================================================================
+10. ARCHITECTURE CONSTRAINTS PHASE 12
+======================================================================
+
+Ini sangat penting.
+
+Current ownership:
+
+QueueEngine
+= owner queue state + queue policy.
+
+PlaybackEngine
+= owner satu private ExoPlayer + playback runtime.
+
+QueuePlaybackCoordinator
+= explicit integration boundary antara queue dan playback.
+
+Audio Player UI
+= presentation layer saja.
+
+PHASE 12 HARUS mempertahankan ownership tersebut.
+
+MediaSession / MediaSessionService tidak boleh:
+- membuat ExoPlayer kedua;
+- membuat hidden queue;
+- memindahkan repeat/shuffle policy;
+- membuat playback state source of truth kedua;
+- membuat parallel playback controller yang tidak sinkron;
+- menjadikan MediaSession owner canonical queue.
+
+Target conceptual flow:
+
+Android OS / Notification / Lockscreen / Headset / Bluetooth
+↓
+MediaSession
+↓
+existing app playback integration
+↓
+QueuePlaybackCoordinator / PlaybackEngine
+↓
+same ExoPlayer
+
+State ke Android OS juga harus berasal dari existing queue/playback runtime,
+bukan mirror state yang menjadi authoritative baru.
+
+
+======================================================================
+11. PHASE 12 — AREA YANG HARUS DI-DISCOVER SEBELUM PATCH
+======================================================================
+
+PHASE 12 adalah perubahan architecture/runtime, jadi jangan langsung patch dari
+memory.
+
+Comprehensive discovery harus mencakup area yang langsung terkait:
+
+Playback:
+- PlaybackEngine.kt
+- PlaybackState.kt
+- QueuePlaybackCoordinator.kt
+- QueueEngine / QueueState
+- current release/lifecycle ownership
+
+Application/runtime ownership:
+- NexPlayApp.kt
+- MainActivity.kt
+- application/context ownership
+- current remember()/DisposableEffect/release path
+
+Android:
+- AndroidManifest.xml
+- current application/activity declarations
+- foreground-service permissions
+- media playback foreground service declarations
+- service lifecycle requirements
+- targetSdk/compileSdk implications
+
+Dependencies:
+- app/build.gradle.kts
+- gradle/libs.versions.toml
+- current Media3 dependency set
+- whether media3-session is already present or must be added
+
+Audio behavior:
+- existing ExoPlayer audio attributes
+- existing audio focus configuration
+- existing handleAudioBecomingNoisy configuration
+- whether Media3 can own some of this safely
+- output disconnect behavior
+
+Metadata:
+- canonical MediaItem fields available for MediaSession metadata
+- title
+- artist
+- album
+- duration
+- artwork limitations
+
+Queue/session mapping:
+- current queue state
+- current item
+- next/previous semantics
+- repeat/shuffle semantics
+- what MediaSession needs to expose to Android
+- avoid duplicate queue ownership
+
+Tests:
+- existing 11 instrumentation tests
+- PlaybackEngine tests
+- QueuePlaybackCoordinator tests
+- test infrastructure for service/session
+- regression coverage required after PHASE 12
+
+Build/config:
+- minSdk 23
+- targetSdk 37
+- Android 15 physical device currently used
+- service/notification permission requirements relevant to target SDK
+
+Discovery output wajib satu file:
+
+patches/output/phase_12_mediasession_background_audio_discovery.txt
+
+Minimal:
+- Task
+- Scope
+- Files inspected
+- Important symbols/full source blocks
+- Ownership/lifecycle flow
+- Current Android manifest/config
+- Current Media3 dependencies
+- Current audio focus/noisy handling
+- Session integration options
+- Test coverage
+- Required direct changes
+- Concerns/unknowns
+- Conclusion: evidence sufficient / insufficient
+
+Jangan berhenti hanya setelah menemukan MediaSessionService example.
+Telusuri existing owner/caller/release path sampai lifecycle bisa dipahami.
+
+
+======================================================================
+12. RULES SOFTWARE ENGINEERING TERBARU
+======================================================================
+
+ROLE:
+- Software Architect
+- Senior Software Engineer
+- Product Engineer
+
+Prioritas:
+- Simplicity
+- Maintainability
+- Scalability
+- Readability
+- Long-term Sustainability
+
+Hindari:
+- Overengineering
+- Premature Optimization
+- Unnecessary Abstraction
+- Unnecessary Dependency
+- Scope Creep
+
+Prinsip:
+pilih perubahan paling kecil yang menyelesaikan masalah dengan benar.
+
+
+======================================================================
+13. MODE RESPONS
+======================================================================
+
+DISCUSSION
+Untuk:
+- brainstorming
+- desain produk
+- architecture
+- roadmap
+- conceptual documentation
+- comparison
+
+Aturan:
+- konseptual;
+- jelaskan trade-off/risiko/rekomendasi;
+- tidak membuat patch;
+- tidak meminta file jika tidak diperlukan;
+- tidak memberi discovery command tanpa kebutuhan implementation.
+
+IMPLEMENTATION
+Untuk:
+- fitur
+- bug fix
+- refactor
+- source changes
+
+Aturan:
+- cek apakah evidence aktual cukup;
+- jika cukup → langsung patch;
+- jika belum → satu comprehensive discovery;
+- jangan menebak source/path;
+- jangan teori panjang sebelum eksekusi.
+
+AGENT PROMPTING
+Jika user meminta prompt Codex/TRAE/agent:
+- jangan implementasi task langsung;
+- tulis prompt siap pakai;
+- agent wajib membaca repo terlebih dahulu;
+- sertakan task, target, constraints, verification, report.
+
+REVIEW
+Status:
+- ALIGNED
+- PARTIALLY ALIGNED
+- NOT ALIGNED
+- INSUFFICIENT EVIDENCE
+
+Pisahkan:
+- Implemented
+- Verified
+- Concern
+- Known Limitation
+- Out of Scope
+
+
+======================================================================
+14. SOURCE OF TRUTH
+======================================================================
+
+Desired behavior ditentukan oleh:
+1. Instruksi terbaru user.
+2. Keputusan terbaru yang sudah dikonfirmasi.
+3. Dokumentasi terbaru.
+4. Context conversation.
+
+Actual implementation ditentukan oleh:
+1. Repository aktual.
+2. File terbaru.
+3. Snippet terbaru.
+4. Terminal output terbaru.
+5. Screenshot terbaru.
+6. Agent report.
+7. Conversation memory hanya context, bukan source code truth.
+
+Jika local working tree memiliki uncommitted changes:
+- local source > GitHub remote.
+
+Setelah snapshot ini:
+- working tree clean;
+- origin/main sudah sinkron;
+- GitHub HEAD dapat digunakan sebagai current committed baseline,
+  tetapi pada PHASE 12 jika user mulai membuat local changes lagi,
+  local source kembali menjadi source of truth.
+
+
+======================================================================
+15. DISCOVERY RULES
+======================================================================
+
+Jika evidence belum cukup:
+- jangan menebak;
+- lakukan comprehensive discovery area terkait;
+- mulai dari symbol/entry point;
+- ikuti caller/consumer;
+- helper/service/bridge/adapter;
+- state/model/controller/provider;
+- tests;
+- config/dependencies;
+- native/platform/build settings.
+
+Menyeluruh bukan berarti audit seluruh repository.
+
+Batasi ke semua area yang langsung berkaitan dengan perubahan.
+
+Jangan:
+- cleanup unrelated;
+- refactor unrelated;
+- memperbaiki concern lain diam-diam.
+
+Discovery wajib disimpan sebagai:
+patches/output/<nama>.txt
+
+patches/output:
+- local evidence;
+- git-ignored;
+- JANGAN stage/commit.
+
+Output discovery harus dianalisis,
+bukan hanya raw grep/search result.
+
+
+======================================================================
+16. MANUAL PATCH FORMAT
+======================================================================
+
+Jika memberikan patch manual:
+
+FILE:
+<path>
+
+CARI:
+<exact current block>
+
+GANTI MENJADI:
+<full replacement>
+
+EFEK:
+<brief effect>
+
+Rules:
+- CARI harus persis dari latest actual source.
+- CARI cukup lengkap untuk Ctrl+F.
+- Jangan ellipsis.
+- Pertahankan indentasi.
+- GANTI MENJADI harus siap paste.
+- Gunakan perubahan paling kecil.
+- Jangan menebak block dari memory lama.
+
+
+======================================================================
+17. COMMAND / POWERSHELL RULES BARU DARI PENGALAMAN PHASE 11
+======================================================================
+
+A. Jangan membuat script terlalu kompleks jika command kecil cukup.
+
+B. Windows PowerShell 5.1 memiliki encoding caveat dengan external process.
+
+Masalah yang terjadi:
+`git show` output yang mengandung Unicode seperti em dash `—`
+tidak selalu menghasilkan string yang identik ketika ditangkap ke variabel
+PowerShell.
+
+Akibatnya:
+heading yang terlihat benar bisa gagal exact-match.
+
+Rule baru:
+untuk memanipulasi local text files:
+prefer:
+[System.IO.File]::ReadAllText(...)
+[System.IO.File]::ReadAllLines(...)
+
+daripada menangkap output `git show` lalu melakukan exact Unicode matching.
+
+Jika perlu restore baseline:
+gunakan:
+git restore --source=HEAD -- <file>
+
+lalu baca file lokal via .NET.
+
+C. Untuk heading/section matching:
+- jika Unicode berpotensi bermasalah, gunakan stable ASCII prefix,
+  contoh:
+  "# 18. Phase 11"
+  bukan exact whole heading yang mengandung em dash.
+- line-based matching lebih aman daripada giant multiline regex.
+
+D. `$ErrorActionPreference = "Stop"` TIDAK otomatis menghentikan script
+ketika native executable seperti `git` return non-zero.
+
+Contoh masalah yang terjadi:
+git diff --cached --check
+menemukan trailing whitespace,
+tetapi git commit tetap dijalankan.
+
+Untuk critical Git command:
+selalu cek:
+
+git diff --cached --check
+if ($LASTEXITCODE -ne 0) {
+    throw "git diff --cached --check failed."
+}
+
+Hal sama jika diperlukan untuk:
+- git commit
+- git push
+- gradlew
+- adb command kritis
+
+E. LF → CRLF warning:
+warning seperti:
+
+LF will be replaced by CRLF the next time Git touches it
+
+bukan whitespace error.
+
+Jika `git diff --check` hanya mengeluarkan LF/CRLF warning:
+anggap tidak ada whitespace violation.
+
+F. PowerShell continuation:
+jika terminal masuk prompt `>>` tidak sesuai harapan:
+Ctrl+C sekali lalu ulangi command.
+
+G. Jangan menaruh literal nested triple-backtick secara ceroboh di
+PowerShell here-string yang dikirim melalui chat.
+Jika perlu markdown fences:
+$fence = [string]::new([char]96, 3)
+
+
+======================================================================
+18. GIT / COMMIT RULES
+======================================================================
+
+Sebelum commit:
+1. verification relevan harus sudah pass;
+2. docs sinkron;
+3. git diff --check;
+4. git add;
+5. git diff --cached --check;
+6. CHECK $LASTEXITCODE;
+7. review git status;
+8. commit;
+9. push;
+10. final git status;
+11. git log.
+
+Jangan commit:
+patches/output/
+
+Jangan amend/force-push hanya untuk cleanup kecil yang sudah ter-push jika
+simple follow-up commit lebih aman.
+
+Contoh PHASE 11:
+commit utama:
+973d521 feat(player): add native audio player
+
+cleanup:
+c1c430a chore: clean Sora license whitespace
+
+Final:
+main == origin/main
+working tree clean.
+
+
+======================================================================
+19. VERIFICATION RULES
+======================================================================
+
+Setelah implementation, jika relevan:
+- formatter/static analysis
+- unit test
+- lint
+- build
+- instrumentation
+- runtime/manual regression
+- git diff --check
+
+Jangan klaim:
+- Fixed
+- Done
+- Fully Verified
+- Production-ready
+- No Regression
+
+tanpa evidence.
+
+Bedakan:
+Implemented
+vs
+Verified.
+
+Untuk PHASE 12 kemungkinan minimal verification harus mencakup:
+
+Automated:
+- testDebugUnitTest
+- lintDebug
+- assembleDebug
+- connectedDebugAndroidTest
+
+Physical device:
+- installDebug
+- cold launch
+- background playback
+- screen off playback
+- notification controls
+- lockscreen controls
+- headset button
+- Bluetooth controls jika device tersedia
+- audio focus interruption
+- unplug/noisy route
+- foreground → background → foreground state synchronization
+- no duplicate playback
+- no FATAL EXCEPTION
+- no ANR
+
+
+======================================================================
+20. STANDARD ANDROID DEVICE WORKFLOW
+======================================================================
+
+Physical device sebelumnya:
+23049PCD8G - Android 15
+
+Latest closeout device output sempat menggunakan adb serial:
+34365a0b
+namun instrumentation tetap melaporkan:
+23049PCD8G - 15
+
+Jangan hardcode serial kecuali diperlukan.
+
+NexPlay dev launch standard:
+- installDebug
+- am force-stop
+- monkey launcher
+- pidof
+- manual check
+- logcat
+
+Jangan gunakan `am start` sebagai default dev launch.
+Pada Android 15 sebelumnya pernah gagal aneh walaupun activity/package valid.
+
+Preferred launch:
+
+$adb shell am force-stop com.nexplay.app
+
+$adb shell monkey `
+    -p com.nexplay.app `
+    -c android.intent.category.LAUNCHER `
+    1
+
+pm grant:
+- bukan normal manual-launch requirement;
+- gunakan hanya jika deterministic instrumentation setup memang perlu.
+
+
+======================================================================
+21. CHANGE CONTROL
+======================================================================
+
+PHASE 12 tidak boleh diam-diam:
+- redesign Audio Player;
+- refactor Control Deck;
+- mengubah A-B behavior;
+- mengubah QueueEngine semantics;
+- mengubah Folders UX;
+- mengubah theme;
+- mengubah Sora typography;
+- mengimplementasikan Playlist;
+- mengimplementasikan Playhub;
+- mengimplementasikan Search;
+- mengimplementasikan Video Player;
+- mengimplementasikan artwork extraction;
+- menambah unrelated dependency;
+- mengubah architecture/state management tanpa kebutuhan terbukti.
+
+Masalah unrelated:
+catat sebagai Concern.
+Jangan diperbaiki diam-diam.
+
+
+======================================================================
+22. KNOWN LIMITATIONS SAAT MEMULAI PHASE 12
+======================================================================
+
+Masih deferred/pending:
+
+- Real media artwork extraction/display.
+- Add to Playlist implementation.
+- Native playlist persistence.
+- Rhythm Analyzer.
+- Share.
+- Details.
+- Playhub.
+- Search.
+- Playlist screen.
+- Video rendering surface.
+- MediaSession.
+- MediaSessionService.
+- Media notification.
+- Background playback.
+- Lockscreen controls.
+- Headset controls.
+- Bluetooth controls.
+- Audio focus handling.
+- Noisy-audio handling.
+- Persistence/cached-library startup.
+- Repository refresh masih synchronous dan harus dipanggil di luar UI thread.
+- Playback speed.
+- Haptic micro-interactions.
+- Artwork-driven player accent.
+- DataStore migration untuk theme preference.
+
+PHASE 12 hanya menangani subset Android MediaSession/background audio,
+bukan semua limitation tersebut.
+
+
+======================================================================
+23. FLUTTER BASELINE / PARITY YANG MASIH RELEVAN KE DEPAN
+======================================================================
+
+Flutter baseline tetap parity reference.
+
+Eventually parity-critical:
+- A-B Repeat
+- speed cycle
+- Playback Snapshot restore
+- Continue Playing
+- Recently Played
+- video audio-only handoff
+- floating video mini player
+- Android PiP
+- ACTION_VIEW
+- cached library startup
+- app resume refresh
+- internal theme persistence
+- folder-context playback from Search
+- mixed audio/video folder queue
+- Android Back
+
+Tidak semuanya scope PHASE 12.
+
+Untuk PHASE 12, parity-relevant terutama:
+- background playback;
+- MediaSession;
+- notification;
+- lockscreen;
+- headset/Bluetooth;
+- audio focus;
+- lifecycle behavior.
+
+
+======================================================================
+24. DESIGN PHILOSOPHY YANG HARUS DIPERTAHANKAN
+======================================================================
+
+NexPlay harus distinctive tetapi simple.
+
+Current identity:
+- flat light/dark canvas;
+- purple #7C8DFF sebagai signal;
+- Sora typography;
+- wavy playback progress;
+- wide Play/Pause button;
+- compact Control Deck;
+- minimal decorative noise.
+
+Hindari:
+- gradient;
+- glow;
+- excessive cards;
+- excessive shadows;
+- decorative overload;
+- Rhythm clone;
+- visual redesign saat mengerjakan background architecture.
+
+
+======================================================================
+25. REKOMENDASI LANGKAH PERTAMA CHAT PHASE 12
+======================================================================
+
+Mulai chat baru dengan snapshot ini sebagai context.
+
+Kemudian lakukan IMPLEMENTATION MODE:
+
+1. Jangan langsung patch MediaSession.
+2. Buat comprehensive PHASE 12 discovery dari actual clean HEAD.
+3. Discovery harus menghasilkan:
+   patches/output/phase_12_mediasession_background_audio_discovery.txt
+4. Review ownership:
+   QueueEngine
+   QueuePlaybackCoordinator
+   PlaybackEngine
+   MainActivity
+   NexPlayApp
+   manifest
+   Media3 dependencies
+   tests
+5. Tentukan integration architecture paling kecil.
+6. Pastikan hanya ada satu ExoPlayer.
+7. Pastikan hanya ada satu canonical queue.
+8. Setelah evidence cukup, baru berikan patch minimal.
+9. Verifikasi background + Android OS integration pada physical device.
+10. Baru update docs dan commit PHASE 12.
+
+Target checkpoint PHASE 12 dari roadmap:
+
+feat(android): add MediaSession background playback
+
+
+======================================================================
+26. FINAL STATE
+======================================================================
+
+PHASE 11:
+IMPLEMENTED
+VERIFIED
+DOCUMENTED
+COMMITTED
+PUSHED
+CLOSED
+
+HEAD:
+c1c430a chore: clean Sora license whitespace
+
+Main PHASE 11 commit:
+973d521 feat(player): add native audio player
+
+Repository:
+CLEAN
+
+Remote:
+SYNCED
+
+Current Phase:
+PHASE 12 — Android MediaSession dan Background Audio
+
+Immediate problem:
+Mengintegrasikan playback NexPlay dengan Android OS agar background playback,
+notification, lockscreen, headset, Bluetooth, audio focus, dan noisy-audio
+handling bekerja melalui runtime yang sama, tanpa membuat ExoPlayer kedua,
+hidden queue, atau duplicate authoritative playback state.
