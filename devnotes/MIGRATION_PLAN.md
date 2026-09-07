@@ -98,44 +98,38 @@ Jangan menghabiskan terlalu banyak waktu pada pixel-perfect UI ketika core subsy
 
 ---
 
-### 2.4 Repository Model — Development dan Release
+### 2.4 Repository Model — Current Single Repository Contract
 
-NexPlay menggunakan contract satu project dengan dua repository yang memiliki tanggung jawab berbeda.
+PHASE 24 menetapkan final repository contract NexPlay sebagai satu repository publik.
 
-Current development contract:
-
-```
-Development repository
-fahmirizrev/NexPlay-workspace
+```text
+GitHub repository
+fahmirizrev/NexPlay
 
 Local development root
 C:\laragon\www\nexplay
 
 Git remote
-origin → NexPlay-workspace
+origin → fahmirizrev/NexPlay
 ```
 
-Target release contract:
+Current rules:
 
-```
-Release repository
-fahmirizrev/NexPlay
-
-Git remote
-release → NexPlay
-```
-
-Rules:
-
-- NexPlay-workspace adalah development source of truth;
-- local root tetap C:\laragon\www\nexplay dan tidak wajib mengikuti nama repository GitHub;
-- origin tetap menunjuk ke NexPlay-workspace;
-- NexPlay adalah target repository release dan tidak menggantikan origin;
-- release repository baru digunakan setelah Production Migration Gate dan Production Cutover mengizinkannya;
+- `fahmirizrev/NexPlay` adalah single source repository untuk active native source, public source, documentation, tracked development notes, tags, dan releases;
+- tidak ada `NexPlay-workspace` repository terpisah;
+- tidak ada release remote terpisah;
+- local development root tetap `C:\laragon\www\nexplay`;
+- `origin` menunjuk ke `fahmirizrev/NexPlay`;
+- active application berada di `nexplay_kotlin/`;
+- historical migration material dipertahankan di `devnotes/`;
+- `patches/`, `patches/output/`, dan `prompt/` tetap local-only;
+- legacy Flutter implementation sudah dipensiunkan dari active repository;
+- complete pre-public Git history disimpan sebagai private local Git bundle;
+- public Git history dimulai dari clean native release baseline;
 - application identity tetap NexPlay;
-- applicationId tetap com.nexplay.app;
-- nama repository tidak mengubah package, application identity, atau runtime architecture;
-- Flutter reference tetap berada di development workspace sampai cutover selesai.
+- application ID tetap `com.nexplay.app`.
+
+Historical two-repository planning di fase sebelumnya tidak lagi menjadi active repository contract setelah PHASE 24.
 
 ## 3. Stack Utama Kotlin
 
@@ -2400,6 +2394,78 @@ Current migration-critical contract setelah PHASE 23:
 - tidak ada dependency baru, playback engine baru, queue baru, persistence schema baru, atau state-management replacement pada PHASE 23.
 
 PHASE 23 approval berarti current Kotlin candidate boleh masuk PHASE 24 Production Cutover. Approval ini bukan klaim bahwa signed production release, upgrade/install migration, atau public release sudah selesai; pekerjaan tersebut tetap menjadi scope PHASE 24.
+
+---
+
+## PHASE 24 Production Cutover Closure
+
+PHASE 24 Production Cutover ditutup pada 2026-09-07 setelah native Kotlin candidate berhasil melewati production release, repository, signing, artifact, runtime, privacy, dan publication gates.
+
+Final production contract:
+
+- active application: `nexplay_kotlin/`;
+- application ID: `com.nexplay.app`;
+- version code: `1`;
+- version name: `1.0.0`;
+- minimum SDK: API 23 / Android 6.0;
+- license: GNU General Public License v3.0 only (`GPL-3.0-only`);
+- GitHub repository: `fahmirizrev/NexPlay`;
+- repository visibility: PUBLIC;
+- default branch: `main`;
+- release tag: `v1.0.0`;
+- release baseline commit: `dd85d0c7cf21a555d7820e5fe35f368b60932d60`.
+
+Production signing:
+
+- stable production keystore disimpan di luar tracked repository;
+- signing configuration dibaca melalui `NEXPLAY_RELEASE_*` environment variables;
+- release certificate SHA-256:
+  `0D:BC:90:94:0A:DF:BB:A9:1D:17:A5:50:0D:4B:16:5D:EB:1E:C1:DA:0B:A7:69:70:D3:E2:24:92:0B:F0:E8:CC`;
+- signed APK menggunakan APK Signature Scheme v1 dan v2.
+
+Final public artifact:
+
+```text
+NexPlay-1.0.0.apk
+Size: 17,291,037 bytes
+SHA-256:
+CF135CAD4EEE7759E9D906D04D6AB05126BC787423393E97D7139B862170ECD1
+```
+
+Release validation mencakup:
+
+- unit test;
+- Android lint;
+- debug build;
+- Android test APK build;
+- signed release build;
+- APK signing verification;
+- package/version metadata verification;
+- signed install and launch;
+- targeted runtime acceptance pada Poco F5 dan Redmi Note 7;
+- final GPL About verification pada Redmi Note 7;
+- release artifact download-back checksum verification.
+
+PHASE 24 juga menyelesaikan fullscreen rotation regression pada shared scrollbar. Root cause adalah transient container height yang dapat lebih kecil daripada minimum thumb height selama orientation resize. Fix membatasi effective minimum thumb height terhadap actual container height tanpa membuat Video Player workaround khusus.
+
+Public repository preparation mencakup:
+
+- removal active legacy Flutter tree;
+- preservation migration history di `devnotes/`;
+- public documentation dan real device screenshots;
+- first `CHANGELOG.md`;
+- GPL-3.0-only license migration;
+- repository secret/private-data audit;
+- private backup complete pre-public Git history;
+- clean public Git baseline;
+- recreation repository GitHub untuk menghilangkan orphaned historical Git objects;
+- verification bahwa representative old commit SHA tidak tersedia di fresh repository;
+- publication `v1.0.0`;
+- publication APK dan SHA-256 checksum.
+
+PHASE 24 selesai dan migration cutover dinyatakan complete. Pekerjaan berikutnya berpindah ke PHASE 25 stabilization-first.
+
+---
 
 # 24. Post-Migration Expansion
 

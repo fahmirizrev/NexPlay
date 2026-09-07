@@ -2,10 +2,12 @@
 
 ## Current Phase
 
-PHASE 24 - Production Cutover
+PHASE 25 - Kotlin Stabilization Release
+
 ## Current Task
 
-PHASE 23 Production Migration Gate telah ditutup dan approved untuk masuk Production Cutover setelah final product hardening, static gate, dan targeted runtime acceptance pada Poco F5 serta Redmi Note 7. Current target adalah PHASE 24: freeze candidate, preserve/tag Flutter baseline, finalisasi version/release configuration, validate signed release artifact, install/upgrade/persistence smoke, dan menyiapkan release repository tanpa mengubah development origin.
+PHASE 24 Production Cutover telah COMPLETED + VERIFIED. NexPlay 1.0.0 sudah menjadi public signed native Android release di `fahmirizrev/NexPlay`. Current target adalah PHASE 25 stabilization-first: observasi issue nyata dari public/native release, reproduce regression sebelum patch, dan hanya melakukan smallest targeted fix tanpa speculative feature expansion.
+
 ## Completed
 - PRE-00 workspace transition selesai.
 - PHASE 00 Flutter baseline audit selesai dan terverifikasi.
@@ -33,6 +35,7 @@ PHASE 23 Production Migration Gate telah ditutup dan approved untuk masuk Produc
 - PHASE 21 Codec Compatibility dan Old Device Hardening selesai dan terverifikasi.
 - PHASE 22 Performance dan Responsiveness selesai dan terverifikasi.
 - PHASE 23 Production Migration Gate selesai dan terverifikasi.
+- PHASE 24 Production Cutover selesai, terverifikasi, dan NexPlay 1.0.0 telah dipublikasikan.
 - `QueuePlaybackCoordinator` tersedia sebagai explicit integration boundary.
 - Queue Engine tetap menjadi owner queue state dan queue policy.
 - Playback Engine tetap menjadi owner ExoPlayer dan runtime playback.
@@ -555,7 +558,10 @@ PHASE 23 Production Migration Gate telah ditutup dan approved untuk masuk Produc
 
 ## In Progress
 
-- PHASE 24 Production Cutover preparation.
+- PHASE 25 Kotlin Stabilization Release.
+- Stabilization-first monitoring terhadap crash, ANR, playback regression, device/codec regression, MediaSession/background regression, queue synchronization, playlist persistence, lifecycle, resource usage, dan blocking UI regression.
+- Tidak ada speculative feature work tanpa demonstrated release issue.
+
 ## Blocked
 
 - None.
@@ -591,21 +597,12 @@ PHASE 23 Production Migration Gate telah ditutup dan approved untuk masuk Produc
 - Floating video mini player intentionally not implemented.
 ## Next
 
-- Freeze current PHASE 23-approved Kotlin candidate.
-- Preserve dan tag Flutter production baseline sesuai cutover plan.
-- Finalisasi native Kotlin version untuk production candidate.
-- Audit dan finalisasi release configuration.
-- Siapkan signed release artifact.
-- Jalankan release build validation.
-- Jalankan clean install smoke pada release artifact.
-- Jalankan upgrade/install-over-existing-app smoke bila applicable terhadap package/cutover contract.
-- Verifikasi playlist/theme/Child Lock pattern persistence setelah release install/upgrade.
-- Verifikasi MediaSession/background playback pada release artifact.
-- Verifikasi Audio/Video playback pada release artifact.
-- Verifikasi high-quality artwork dan scrollbar pada release artifact.
-- Siapkan future release repository NexPlay.
-- Tambahkan release remote tanpa mengganti origin development workspace.
-- Jangan publish production baseline sebelum PHASE 24 acceptance terpenuhi.
+- Gunakan NexPlay 1.0.0 public release sebagai stabilization baseline.
+- Kumpulkan issue berdasarkan reproducible runtime evidence.
+- Untuk setiap regression: discovery scoped → smallest targeted fix → static verification → affected-device runtime verification.
+- Pertahankan QueueEngine, PlaybackEngine, MediaLibraryRepository, PlaylistRepository, dan persistence ownership yang sudah stabil.
+- Jangan membuka PHASE 26 enrichment sebelum PHASE 25 stabilization acceptance terpenuhi.
+
 ## Verification
 
 ### PHASE 22 Final Verification
@@ -886,6 +883,52 @@ PHASE 23 Production Migration Gate telah ditutup dan approved untuk masuk Produc
 - Latest scrollbar presentation/runtime behavior diterima.
 - Playback tetap stabil selama targeted runtime validation.
 - PHASE 23 approved untuk masuk PHASE 24 Production Cutover.
+
+### PHASE 24 Final Verification
+
+- PHASE 23-approved Kotlin candidate dibekukan untuk production cutover.
+- `applicationId`: `com.nexplay.app`.
+- `versionCode`: `1`.
+- `versionName`: `1.0.0`.
+- Release license: `GPL-3.0-only`.
+- Production keystore disimpan di luar repository.
+- Production signing configuration menggunakan `NEXPLAY_RELEASE_*` environment variables.
+- Final signed APK signature verification: PASS.
+- APK Signature Scheme v1: PASS.
+- APK Signature Scheme v2: PASS.
+- Release certificate identity: VERIFIED.
+- Final APK metadata package/version: VERIFIED.
+- `testDebugUnitTest`: BUILD SUCCESSFUL.
+- `lintDebug`: BUILD SUCCESSFUL.
+- `assembleDebug`: BUILD SUCCESSFUL.
+- `assembleDebugAndroidTest`: BUILD SUCCESSFUL.
+- `assembleRelease`: BUILD SUCCESSFUL.
+- `git diff --check`: PASS.
+- Fullscreen transient-resize scrollbar crash root cause ditemukan dan fixed.
+- Poco F5 targeted runtime acceptance: PASS.
+- Redmi Note 7 targeted runtime acceptance: PASS.
+- Exact final GPL artifact install/launch pada Redmi Note 7: PASS.
+- About `GNU GPL v3.0 only`: runtime verified.
+- Final artifact: `NexPlay-1.0.0.apk`.
+- Final artifact size: `17,291,037` bytes.
+- Final SHA-256: `CF135CAD4EEE7759E9D906D04D6AB05126BC787423393E97D7139B862170ECD1`.
+- Public documentation dan six real-device screenshots: VERIFIED.
+- Current-tree high-confidence secret scan: PASS.
+- Production signing files tidak tracked.
+- Complete pre-public Git history tersimpan pada verified private bundle.
+- Fresh repository `fahmirizrev/NexPlay` dibuat untuk clean public Git object database.
+- Representative old historical commit SHA tidak tersedia pada fresh repository.
+- Repository visibility: PUBLIC.
+- Default branch: `main`.
+- Release baseline commit: `dd85d0c7cf21a555d7820e5fe35f368b60932d60`.
+- Tag `v1.0.0`: PUBLISHED.
+- GitHub Release `NexPlay 1.0.0`: PUBLISHED.
+- `NexPlay-1.0.0.apk`: PUBLISHED.
+- `NexPlay-1.0.0.sha256`: PUBLISHED.
+- Published APK di-download ulang dan SHA-256 cocok dengan verified release artifact.
+- PHASE 24: COMPLETED + VERIFIED.
+- PHASE 25: READY / CURRENT.
+
 ## Last Commit
 
-feat(hardening): finalize production migration gate - PHASE 23 closeout checkpoint.
+docs: close phase 24 and enter phase 25 - migration documentation closeout checkpoint.

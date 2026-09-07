@@ -2835,82 +2835,227 @@ feat(hardening): finalize production migration gate
 
 # 31. Phase 24 — Production Cutover
 
-**Status: CURRENT**
+**Status: COMPLETED + VERIFIED - 2026-09-07**
 
 ## Tujuan
 
-Melakukan perpindahan resmi dari development migration candidate ke release baseline setelah PHASE 23 PASS.
+Melakukan official production cutover dari approved Kotlin migration candidate menjadi NexPlay 1.0.0 public native Android release.
 
-## Repository Contract
+## Final Repository Contract
 
-NexPlay menggunakan model satu project dengan dua repository.
+PHASE 24 membatalkan planning lama dua-repository dan menetapkan single-repository model.
 
+```text
+Repository
+fahmirizrev/NexPlay
+
+Local root
+C:\laragon\www\nexplay
+
+Remote
+origin → fahmirizrev/NexPlay
 ```
-Development
-fahmirizrev/NexPlay-workspace
-remote: origin
+
+Repository final menyimpan:
+
+- active native Kotlin source;
+- public source;
+- public documentation;
+- release documentation;
+- tracked `devnotes/`;
+- tags;
+- GitHub Releases.
+
+Local-only:
+
+- `patches/`;
+- `patches/output/`;
+- `prompt/`;
+- signing keystore dan signing credentials.
+
+Legacy Flutter implementation sudah dipensiunkan dari active tree. Complete historical Git data sebelum public cutover dipertahankan melalui verified private Git bundle.
+
+## Release Identity
+
+```text
+Application
+NexPlay
+
+Application ID
+com.nexplay.app
+
+Version Code
+1
+
+Version Name
+1.0.0
+
+Min SDK
+23 / Android 6.0
+
+License
+GPL-3.0-only
+```
+
+## Production Signing
+
+Release signing menggunakan stable production identity dan environment-variable contract:
+
+```text
+NEXPLAY_RELEASE_STORE_FILE
+NEXPLAY_RELEASE_STORE_PASSWORD
+NEXPLAY_RELEASE_KEY_ALIAS
+NEXPLAY_RELEASE_KEY_PASSWORD
+```
+
+Production keystore tidak berada di tracked repository.
+
+Release certificate SHA-256:
+
+```text
+0D:BC:90:94:0A:DF:BB:A9:1D:17:A5:50:0D:4B:16:5D:EB:1E:C1:DA:0B:A7:69:70:D3:E2:24:92:0B:F0:E8:CC
+```
+
+Final APK berhasil diverifikasi dengan APK Signature Scheme v1 dan v2.
+
+## Fullscreen Regression Fix
+
+Production validation menemukan crash ketika Video Player masuk fullscreen pada transient portrait → landscape resize.
+
+Root cause bukan Video Player orientation/system-bar API, tetapi shared `NexPlayScrollbar`.
+
+Transient container height dapat menjadi lebih kecil daripada configured minimum thumb height sehingga `coerceIn(minThumbHeightPx, containerHeightPx)` menerima invalid range.
+
+Fix:
+
+- menghitung effective minimum thumb height;
+- membatasi minimum tersebut dengan actual container height;
+- mempertahankan normal minimum thumb geometry setelah layout stabil;
+- tidak menambah Video-specific workaround;
+- tidak mengubah queue, playback, persistence, atau player architecture.
+
+## Final Artifact
+
+```text
+NexPlay-1.0.0.apk
+
+Size
+17,291,037 bytes
+
+SHA-256
+CF135CAD4EEE7759E9D906D04D6AB05126BC787423393E97D7139B862170ECD1
+```
+
+## Runtime Acceptance
+
+Release candidate dan final release behavior divalidasi pada:
+
+- Poco F5;
+- Redmi Note 7.
+
+Final GPL build juga di-install dan launch pada Redmi Note 7, termasuk verification bahwa About menampilkan `GNU GPL v3.0 only`.
+
+Validated release flows mencakup:
+
+- startup;
+- Folders;
+- Audio playback;
+- Video playback;
+- fullscreen enter/exit;
+- Child Lock;
+- background playback;
+- notification playback;
+- release installation;
+- application version identity.
+
+## Public Repository Cutover
+
+Sebelum publication:
+
+- current tree secret/private-data audit PASS;
+- signing-sensitive files tidak tracked;
+- real release screenshots ditambahkan;
+- README diperbaiki dan diverifikasi;
+- `CHANGELOG.md` 1.0.0 dibuat;
+- license diganti menjadi GPL-3.0-only;
+- old Git history dibackup sebagai private bundle.
+
+Karena deleted historical commits masih dapat direferensikan pada GitHub repository lama setelah force-push, repository private lama dihapus dan dibuat ulang dengan nama yang sama.
+
+Fresh repository kemudian menerima hanya clean native public baseline.
+
+Representative old commit SHA diverifikasi tidak tersedia melalui fresh GitHub commit API.
+
+## Publication
+
+```text
+Repository
+https://github.com/fahmirizrev/NexPlay
 
 Release
-fahmirizrev/NexPlay
-remote: release
+v1.0.0
+
+Release baseline commit
+dd85d0c7cf21a555d7820e5fe35f368b60932d60
 ```
 
-Local development root tetap:
+Published assets:
 
-```
-C:\laragon\www\nexplay
-```
+- `NexPlay-1.0.0.apk`;
+- `NexPlay-1.0.0.sha256`.
 
-origin tidak boleh diarahkan ke release repository.
+Published APK di-download ulang dari GitHub Release dan SHA-256 cocok byte-for-byte dengan verified local production artifact.
 
-## Planned Cutover
+GitHub mendeteksi repository license sebagai GNU General Public License v3.0.
 
-1. pastikan PHASE 23 PASS;
-2. freeze approved Kotlin migration candidate;
-3. pertahankan/tag Flutter historical baseline di development workspace;
-4. finalisasi versionCode dan versionName;
-5. verifikasi release build configuration;
-6. verifikasi signed release build;
-7. verifikasi install/upgrade path;
-8. verifikasi Room/DataStore/Child Lock preference persistence yang relevan;
-9. lakukan final release runtime smoke test;
-10. siapkan repository release NexPlay;
-11. tambahkan release remote tanpa mengganti origin;
-12. publish hanya approved release baseline sesuai release-repository contract;
-13. buat release tag/checkpoint;
-14. pertahankan NexPlay-workspace sebagai development source of truth.
+## Verification
 
-## Guardrails
-
-- jangan menghapus Flutter reference sebelum cutover selesai;
-- jangan memindahkan development ownership ke release repository;
-- jangan menjadikan release repository tempat experimental development;
-- jangan menambah feature baru selama cutover;
-- jangan mengganti package/application identity tanpa explicit decision;
-- jangan mengubah persistence schema tanpa kebutuhan terbukti.
-
-## Acceptance
-
-```
-[ ] PHASE 23 PASS
-[ ] Kotlin migration candidate frozen
-[ ] Release configuration verified
-[ ] Signed release build verified
-[ ] Install/upgrade path verified
-[ ] Persistence smoke test PASS
-[ ] Final runtime smoke test PASS
-[ ] Release repository prepared
-[ ] origin tetap NexPlay-workspace
-[ ] release remote menunjuk NexPlay
-[ ] Release baseline published
-[ ] Release tag/checkpoint dibuat
+```text
+[x] PHASE 23 PASS
+[x] Kotlin migration candidate frozen
+[x] Release configuration verified
+[x] Stable production signing identity verified
+[x] Signed release build verified
+[x] APK signature verified
+[x] Package/version metadata verified
+[x] Signed install verified
+[x] Runtime smoke PASS
+[x] Fullscreen regression fixed and verified
+[x] Redmi Note 7 release acceptance PASS
+[x] Poco F5 release acceptance PASS
+[x] Persistence/reinstall behavior accepted during release validation
+[x] Public documentation verified
+[x] Real screenshots published
+[x] GPL-3.0-only applied
+[x] Current-tree secret audit PASS
+[x] Historical Git bundle backup verified
+[x] Fresh clean public repository created
+[x] Representative old Git SHAs inaccessible in fresh repository
+[x] Repository PUBLIC
+[x] v1.0.0 tag published
+[x] GitHub Release published
+[x] APK + SHA-256 published
+[x] Published APK checksum reverified after download
 ```
 
----
+## Known Limitation
+
+- Android Screen Pinning tetap bukan managed Device Owner kiosk mode.
+- Codec availability tetap mengikuti Android/OEM/device capabilities.
+- PHASE 24 tidak mengklaim exhaustive compatibility terhadap seluruh Android device.
+- Post-release issue baru harus dibuktikan melalui reproducible evidence dan ditangani pada PHASE 25.
+
+## Conclusion
+
+**PHASE 24 COMPLETED + VERIFIED.**
+
+NexPlay 1.0.0 menjadi official public native Android release.
+
+Migration cutover selesai. Selanjutnya masuk PHASE 25 stabilization-first.
 
 # 32. Phase 25 — Kotlin Stabilization Release
 
-**Status: PLANNED**
+**Status: CURRENT - 2026-09-07**
 
 ## Tujuan
 
