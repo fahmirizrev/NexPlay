@@ -16,6 +16,7 @@ nexplay_kotlin/app/build/
 nexplay_kotlin/local.properties
 
 # Local engineering workspace
+/notes/
 /patches/
 /patches/output/
 /prompt/

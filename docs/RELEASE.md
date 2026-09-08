@@ -2,24 +2,43 @@
 
 ## Purpose
 
-This document defines the release discipline for NexPlay.
+This document defines the ongoing release process for NexPlay.
 
-Release work must remain conservative and evidence-driven.
+Release work must remain conservative, evidence-driven, and limited to the
+accepted candidate. Do not mix unrelated features or speculative refactors into
+release cutover or stabilization.
 
-## Release Candidate
+## 1. Freeze the Release Candidate
 
-Before preparing a public release:
+Before release work begins:
 
 - freeze the approved source candidate;
 - stop unrelated feature work;
 - confirm the working tree is clean;
-- confirm application identity;
-- confirm version metadata.
+- confirm the target version and release scope;
+- review known limitations and release blockers;
+- confirm the application identity remains `com.nexplay.app`.
 
-## Signing
+Any source change after the freeze invalidates affected verification and must be
+reviewed before the candidate proceeds.
+
+## 2. Verify Versioning
+
+Confirm the release candidate uses the intended:
+
+- application ID;
+- version code;
+- version name;
+- minimum, target, and compile SDK configuration;
+- release notes and changelog entry.
+
+Every public release must increment Android version metadata as appropriate.
+The version in the built artifact, Git tag, changelog, and GitHub Release must
+agree.
+
+## 3. Configure Signing Safely
 
 Production releases must use the stable NexPlay production signing identity.
-
 Private signing material must never be committed to Git.
 
 The release build reads its signing configuration from:
@@ -31,95 +50,149 @@ NEXPLAY_RELEASE_KEY_ALIAS
 NEXPLAY_RELEASE_KEY_PASSWORD
 ```
 
-The production keystore must remain outside the tracked repository.
+`NEXPLAY_RELEASE_STORE_FILE` must point to the production keystore outside the
+tracked repository. Passwords must exist only in an approved local or CI secret
+environment and must never be written to tracked files, shell history, build
+logs, or public documentation.
 
-Signing passwords must exist only in an approved local or CI secret environment and must never be written into tracked files.
+Run production signing tasks with Gradle configuration cache disabled. Clear
+signing-password environment variables from the active shell after the signed
+build is complete.
 
-Release signing tasks should run with Gradle configuration cache disabled.
-## Build Gate
+## 4. Run the Build Gate
 
-A release candidate must pass:
+Run commands from the repository root.
 
-- unit tests;
-- Android lint;
-- debug build regression verification;
-- Android test APK assembly;
-- release build;
-- Git diff validation.
+```powershell
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin testDebugUnitTest
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin lintDebug
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebug
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebugAndroidTest
+git diff --check
+```
 
-## Artifact Verification
+Verify the production signing configuration and build the signed release APK:
 
-The actual release artifact must be checked for:
+```powershell
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin signingReport --no-configuration-cache
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleRelease --no-configuration-cache
+```
+
+The expected signed APK path is:
+
+```text
+nexplay_kotlin/app/build/outputs/apk/release/app-release.apk
+```
+
+A failed check blocks publication until the failure is understood and the
+candidate is verified again.
+
+## 5. Verify the Signed Artifact
+
+Inspect the actual release APK rather than inferring release properties from a
+debug build or source configuration.
+
+Verify:
 
 - package identity;
-- version code;
-- version name;
-- signature;
-- installability.
+- version code and version name;
+- production signature and certificate identity;
+- installability on supported Android versions;
+- upgrade behavior from the previous public release when applicable;
+- persistence of playlists and application preferences across the upgrade;
+- artifact file size and SHA-256 checksum.
 
-## Runtime Verification
+Record the exact artifact and checksum selected for publication. Do not publish
+an unverified rebuild under the same release evidence.
 
-The signed release artifact must be tested on representative physical devices.
+## 6. Run Physical-Device Verification
 
-Critical release flows include:
+Install the signed release artifact on representative physical devices. Verify
+the flows affected by the release and, for a full release gate, cover:
 
 - application startup;
 - media permission flow;
-- Folders;
-- Folder Detail;
+- Folders and Folder Detail;
 - Search;
-- PlayHub;
-- Queue;
-- Playlist;
-- Audio Player;
-- Audio Mini Player;
-- Video Player;
-- fullscreen video;
+- PlayHub and Queue;
+- playlists;
+- Audio Player and Audio Mini Player;
+- Video Player and fullscreen video;
 - Child Lock;
 - background playback;
-- notification controls;
-- lock-screen controls;
+- notification and lock-screen controls;
 - headset or Bluetooth transport where available;
 - Android Open With;
 - theme persistence;
 - playlist persistence;
 - relevant preference persistence.
 
-## Public Repository Audit
+Document devices, Android versions, artifact identity, observations, and any
+known limitation. Automated verification does not replace physical-device
+runtime evidence.
 
-Before making the repository public, audit:
+## 7. Prepare Public Documentation
 
-- current files;
-- Git history;
-- API keys;
-- passwords;
-- tokens;
-- signing files;
+Before publication:
+
+- add a factual entry to `CHANGELOG.md`;
+- verify `README.md` requirements and download links;
+- update affected active documents under `docs/`;
+- prepare GitHub Release notes that match the accepted scope;
+- confirm the version, tag, and artifact names are consistent;
+- ensure the release notes do not claim unverified behavior.
+
+`CHANGELOG.md` is cumulative release history. Update it for every public release;
+do not recreate or replace earlier factual entries.
+
+## 8. Audit Repository Hygiene
+
+Audit the current tracked tree and relevant Git history for:
+
+- API keys, passwords, and tokens;
+- keystores and signing configuration;
 - private personal information;
-- development notes;
-- licensing.
+- local development context or generated output;
+- licensing and attribution issues;
+- unexpected or unrelated files in the release commit.
 
-## Release Publication
+Confirm `notes/`, `patches/`, `patches/output/`, and `prompt/` remain local-only
+and untracked. A security or privacy concern blocks publication until resolved.
+
+## 9. Commit, Tag, and Publish
 
 Only after release acceptance:
 
-1. update and verify public documentation;
-2. create the root `CHANGELOG.md` for the first actual public release;
-3. run the final static, signed-artifact, and runtime verification gates;
-4. create the approved release commit;
-5. complete the final public-repository and Git-history audit while the repository is still private;
-6. perform any approved public-history cleanup before changing repository visibility;
-7. verify the final public baseline;
-8. make the repository public;
-9. create the release tag;
-10. publish the GitHub Release;
-11. attach the approved signed APK;
-12. publish the artifact SHA-256 checksum;
-13. verify the published release, tag, source tree, and downloadable artifact.
+1. verify the final working tree and staged file list;
+2. create the approved release commit;
+3. verify the release commit in a clean checkout when practical;
+4. create the version tag from the accepted release commit;
+5. push the release commit and tag;
+6. publish the GitHub Release for that tag;
+7. attach the exact approved signed APK;
+8. publish its SHA-256 checksum;
+9. verify the public tag, source archive, release notes, APK, and checksum;
+10. download the published APK and confirm it matches the approved artifact.
+
+Do not move or recreate an accepted public tag silently. If publication evidence
+is wrong, stop and correct it transparently.
+
+## 10. Post-Release Verification
+
+After publication:
+
+- test the public download path;
+- verify the published checksum;
+- verify installation of the downloaded artifact;
+- confirm the GitHub latest-release destination resolves to the new release;
+- verify README and changelog links;
+- record any confirmed release issue for stabilization.
+
 ## Stabilization
 
-After the first public release, fixes belong to the stabilization phase.
+Stabilization changes must address reproducible regressions, security/privacy
+issues, compatibility failures, or a broken release promise.
 
-Only reproducible regressions should trigger stabilization fixes.
-
-Do not use stabilization as an excuse for speculative refactoring or feature expansion.
+Do not use stabilization as an excuse for speculative refactoring or feature
+expansion. Each fix must pass proportionate automated, signed-artifact, and
+physical-device verification before a maintenance release is published.

@@ -1,192 +1,76 @@
 # NexPlay Agent Rules
 
-## Project
+## Project Identity
 
-NexPlay is a native Android local-first media player.
+NexPlay is a native Android, local-first media player for music and video.
 
-The active application lives in:
+- Repository root: `C:\laragon\www\nexplay`
+- Active application: `nexplay_kotlin/`
+- Primary implementation: Kotlin, Jetpack Compose, and Android Media3
+- Public documentation: `README.md`, `CHANGELOG.md`, and `docs/`
+- Local development context: `notes/`
 
-`nexplay_kotlin/`
+The current repository and source are the authority for what is implemented.
 
-Public and release documentation lives in:
+## Required Reading
 
-- `README.md`
-- `docs/`
+Before implementation or review, read:
 
-Historical development notes live in:
+1. `AGENTS.md`;
+2. `README.md`;
+3. the active documents under `docs/` that are relevant to the task;
+4. `notes/CURRENT_HANDOFF.md` when it exists and the work continues an active session;
+5. historical files under `notes/` only when they are relevant evidence.
 
-`devnotes/`
-
-Local engineering evidence lives in:
-
-- `patches/`
-- `patches/output/`
-- `prompt/`
-
-Those local engineering directories are intentionally excluded from Git.
-
-The repository is the source of truth for the current implementation.
-
----
-
-## Engineering Role
-
-Work as:
-
-- Software Architect
-- Senior Software Engineer
-- Product Engineer
-
-Prioritize:
-
-1. simplicity;
-2. maintainability;
-3. scalability;
-4. readability;
-5. long-term sustainability.
-
-Avoid:
-
-- overengineering;
-- premature optimization;
-- unnecessary abstraction;
-- unnecessary dependencies;
-- scope creep.
-
-Choose the smallest solution that correctly solves the problem.
-
----
-
-## Working Modes
-
-### Discussion
-
-Use for:
-
-- brainstorming;
-- product design;
-- architecture;
-- roadmap planning;
-- conceptual documentation;
-- alternative comparison.
-
-Rules:
-
-- stay conceptual;
-- explain alternatives, trade-offs, risks, and recommendation;
-- do not create source patches unless implementation is requested.
-
-### Implementation
-
-Use for:
-
-- bug fixes;
-- features;
-- refactors;
-- source changes;
-- release configuration;
-- repository restructuring.
-
-Rules:
-
-- inspect current repository evidence first;
-- do not guess source code or file structure;
-- if evidence is sufficient, implement the smallest change;
-- if evidence is insufficient, perform one comprehensive scoped discovery first;
-- do not expand scope.
-
-### Agent Prompting
-
-When preparing work for another coding agent:
-
-- instruct the agent to inspect the repository first;
-- do not guess file paths or structures;
-- include task, target, constraints, verification, and expected report.
-
-### Review
-
-Use one of:
-
-- ALIGNED
-- PARTIALLY ALIGNED
-- NOT ALIGNED
-- INSUFFICIENT EVIDENCE
-
-Distinguish:
-
-- Implemented
-- Verified
-- Concern
-- Known Limitation
-- Out of Scope
-
----
+NexPlay has no permanent root roadmap. Create one only when a real multi-step
+product cycle needs it, not for structural consistency.
 
 ## Source of Truth
 
-Target behavior is determined by:
+Product intent, in descending order:
 
-1. the latest user instruction;
-2. the latest confirmed decision;
-3. the latest active documentation;
-4. conversation context.
+1. the latest explicit user instruction;
+2. confirmed project decisions;
+3. active project documentation;
+4. current conversation context;
+5. historical development material.
 
-Current implementation state is determined by:
+Implementation facts, in descending order:
 
-1. the actual repository;
-2. the latest files;
-3. the latest snippets;
-4. the latest terminal output;
-5. the latest screenshots;
-6. agent reports;
-7. historical development notes.
+1. current repository and source;
+2. current terminal, build, and test evidence;
+3. current runtime evidence;
+4. current screenshots and reports;
+5. active documentation assumptions;
+6. historical development material.
 
-Current repository evidence overrides historical notes.
+`notes/CURRENT_HANDOFF.md`, when present, is the current development handoff.
+All files under `notes/` are local context only and never override repository or
+source evidence.
 
-Files under `devnotes/` are historical engineering context and are not authoritative over current source code.
+## Architecture and Ownership
 
----
+Preserve this flow:
 
-## Comprehensive Discovery
+```text
+Android MediaStore
+        ↓
+MediaLibraryRepository
+        ↓
+Folders / Search / PlayHub / Playlist
+        ↓
+QueueEngine
+        ↓
+QueuePlaybackCoordinator
+        ↓
+PlaybackEngine
+        ↓
+Single Media3 ExoPlayer
+        ↓
+Audio Player / Video Player / MediaSession
+```
 
-When implementation evidence is insufficient:
-
-- do not guess;
-- start from the relevant symbol or entry point;
-- inspect direct callers and consumers;
-- inspect helper, service, bridge, adapter, repository, and state boundaries directly involved;
-- inspect related tests;
-- inspect relevant configuration, dependencies, resources, native code, and build settings;
-- stay within the direct scope of the requested change.
-
-Consolidate discovery into:
-
-`patches/output/<discovery_name>.txt`
-
-The discovery must include:
-
-- task or problem;
-- discovery scope;
-- files inspected;
-- important symbols or source blocks;
-- relevant data and control flow;
-- existing tests and verification coverage;
-- relevant configuration and dependencies;
-- findings;
-- remaining concerns or unknowns;
-- conclusion on whether evidence is sufficient for implementation.
-
-Do not commit:
-
-- `patches/`;
-- `patches/output/`;
-- `prompt/`.
-
----
-
-## Architecture Ownership
-
-Preserve these boundaries:
+Ownership boundaries:
 
 - `MediaLibraryRepository` owns canonical media-library access.
 - `QueueEngine` owns authoritative queue state and queue policy.
@@ -194,39 +78,40 @@ Preserve these boundaries:
 - `PlaybackEngine` owns the single ExoPlayer runtime.
 - `PlaylistRepository` owns playlist persistence.
 - Preferences/DataStore owns application preferences.
-- Compose UI owns presentation and user interaction.
+- Jetpack Compose UI owns presentation and user interaction.
 
 Do not create:
 
-- a second queue engine;
-- a second playback engine;
+- a second `QueueEngine`;
+- a second `PlaybackEngine`;
 - a second ExoPlayer;
 - hidden playback state;
 - duplicate persistence ownership.
 
----
+Detailed architecture is documented in `docs/ARCHITECTURE.md`.
 
-## Change Control
+## Engineering Constraints
 
-Do not:
+- Inspect current repository evidence before changing source.
+- Preserve unrelated user changes.
+- Prefer the smallest change that correctly solves the task.
+- Do not add dependencies without approval.
+- Do not replace architecture or state management without approval.
+- Do not silently change unrelated UI, UX, routing, persistence, or behavior.
+- Do not perform large refactors unless explicitly requested.
+- Keep media, queue, playback, persistence, and UI ownership explicit.
+- Record unrelated findings as concerns rather than fixing them silently.
 
-- perform large refactors unless explicitly requested;
-- change unrelated behavior;
-- change UI, UX, or routing outside scope;
-- change persistence schema unless necessary;
-- add dependencies without approval;
-- replace architecture or state management without approval;
-- remove stable features without an explicit decision;
-- silently fix unrelated issues.
-
-Record unrelated findings separately as concerns.
-
----
+When implementation evidence is insufficient, perform one scoped discovery from
+the relevant entry point through its direct callers, consumers, boundaries,
+tests, and configuration. Store local discovery evidence under
+`patches/output/`; do not turn temporary findings into permanent project rules.
 
 ## Manual Patch Format
 
-When a manual source patch is required, use:
+When a manual source patch is requested, use:
 
+```text
 FILE:
 <path>
 
@@ -238,124 +123,97 @@ GANTI MENJADI:
 
 EFEK:
 <short explanation>
+```
 
-Rules:
-
-- CARI must match the actual current source exactly.
-- Include enough context for direct search.
-- Preserve indentation.
-- Never use ellipses inside source patches.
-- Keep changes as small as possible.
-
----
+`CARI` must exactly match current source, include enough search context, preserve
+indentation, and never use ellipses inside a source block.
 
 ## Verification
 
 Run commands from the repository root.
 
-Windows example:
+Standard Android verification:
 
-`C:\laragon\www\nexplay`
+```powershell
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin testDebugUnitTest
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin lintDebug
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebug
+.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebugAndroidTest
+git diff --check
+```
 
-Standard verification:
+Run only the checks proportionate to the change, plus release-specific checks
+when release configuration or artifacts are involved. Runtime behavior must be
+validated on an appropriate physical Android device when the change affects it.
 
-`.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin testDebugUnitTest`
+Always distinguish:
 
-`.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin lintDebug`
+- `IMPLEMENTED`
+- `VERIFIED`
+- `RUNTIME_VALIDATED`
+- `CONCERN`
+- `KNOWN_LIMITATION`
+- `OUT_OF_SCOPE`
+- `BLOCKED`
 
-`.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebug`
+Do not claim a fix, full verification, production readiness, or absence of
+regression without supporting evidence.
 
-`.\nexplay_kotlin\gradlew.bat -p nexplay_kotlin assembleDebugAndroidTest`
+## Documentation Policy
 
-`git diff --check`
+Active and public documentation must be written in English:
 
-Run release-specific verification when modifying release configuration.
+- `README.md` is the public product and repository overview.
+- `docs/` contains active architecture, build, privacy, and release guidance.
+- `CHANGELOG.md` contains factual public release history.
+- `AGENTS.md` contains durable NexPlay-specific engineering rules.
 
-Do not claim:
+Local development context may use Indonesian. Historical notes, ChatGPT
+snapshots, handoffs, and temporary implementation context belong under `notes/`,
+not in public documentation.
 
-- Fixed;
-- Done;
-- Fully Verified;
-- Production-ready;
-- No Regression;
-
-without supporting evidence.
-
----
-
-## Documentation
-
-All active and public documentation must be written in English.
-
-This includes:
-
-- `README.md`;
-- `AGENTS.md`;
-- files under `docs/`;
-- future root `CHANGELOG.md`.
-
-Files under `devnotes/` may use Indonesian.
-
-A root `CHANGELOG.md` is created with the first actual public release, not before it.
-
-Public documentation describes the current native Android NexPlay application only.
-
-Historical migration and development material belongs in `devnotes/`.
-
----
-
-## Git Workflow
-
-Before committing:
-
-1. verify the relevant implementation;
-2. run `git diff --check`;
-3. inspect `git status`;
-4. stage only relevant files;
-5. ensure local engineering evidence is not staged;
-6. inspect staged filenames and statistics;
-7. commit with a scoped message;
-8. push `main`;
-9. verify final repository status.
-
-Do not use `git add .` for controlled closeout work.
-
----
+Public documentation must describe the current native Android application only
+and must not present planned or historical behavior as implemented.
 
 ## Repository Policy
 
-This repository is the single NexPlay repository for:
+Tracked public content includes:
 
-- active source code;
-- public source code;
-- public releases;
-- active documentation;
-- tracked development notes.
+- `nexplay_kotlin/`;
+- `AGENTS.md`;
+- `README.md`;
+- `CHANGELOG.md`;
+- `LICENSE`;
+- `docs/`.
 
-There is no separate release repository.
+Local-only and ignored content includes:
 
-`devnotes/` is tracked.
+- `notes/`;
+- `patches/`;
+- `patches/output/`;
+- `prompt/`.
 
-`patches/`, `patches/output/`, and `prompt/` are local-only.
+These local-only directories and all secrets or signing material must never be
+committed. There is one NexPlay repository for active source, public
+documentation, and public releases.
 
----
+Before committing, verify the relevant change, run `git diff --check`, inspect
+`git status`, stage only relevant files, confirm local-only evidence is not
+staged, and inspect the staged file list. Do not use `git add .` for controlled
+closeout work.
 
-## Release Discipline
+## Release and Maintenance
 
-Release work must be conservative.
+NexPlay is a released project. Follow `docs/RELEASE.md` for ongoing releases.
 
-Before a public release:
+- Freeze the accepted release candidate before release work.
+- Verify identity, versioning, signing, the signed artifact, installation,
+  persistence, supported-device runtime behavior, documentation, and repository
+  hygiene.
+- Update `CHANGELOG.md` with factual release history.
+- Create a release tag only after acceptance.
+- Do not add unrelated features during release cutover or stabilization.
 
-- freeze the approved candidate;
-- verify application identity;
-- verify versioning;
-- configure signing safely;
-- verify the signed release build;
-- verify release artifact metadata;
-- verify installation and persistence;
-- verify runtime behavior on supported devices;
-- verify documentation;
-- audit current repository content and history for secrets or private data;
-- create the release tag only after acceptance.
-
-Do not add unrelated features during release cutover or stabilization.
+Use GitHub issues, the changelog, release notes, and
+`notes/CURRENT_HANDOFF.md` when present for normal maintenance. Do not store
+temporary task progress in this file.
